@@ -9,6 +9,7 @@ name: CI
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -19,8 +20,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  approve:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    environment: approval
+    steps:
+      - run: echo "Checks approved by ${GITHUB_TRIGGERING_ACTOR}"
+
   ci:
     name: Python CI
+    needs: approve
+    # Runs when approve passed or was skipped (push/dispatch); a rejected approval stops it.
+    if: always() && needs.approve.result != 'failure' && needs.approve.result != 'cancelled'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -52,6 +63,8 @@ jobs:
 
   security:
     name: Security
+    needs: approve
+    if: always() && needs.approve.result != 'failure' && needs.approve.result != 'cancelled'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -74,6 +87,8 @@ jobs:
 
   codeql:
     name: CodeQL
+    needs: approve
+    if: always() && needs.approve.result != 'failure' && needs.approve.result != 'cancelled'
     runs-on: ubuntu-latest
     permissions:
       contents: read
