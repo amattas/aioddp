@@ -1,0 +1,13 @@
+{
+  "effect": "solid",
+  "length": 300,
+  "t": 0.0,
+  "seed": 0,
+  "params": {
+    "color": [
+      255,
+      255,
+      255
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "effect": "breathe",
+  "length": 300,
+  "t": 0.0,
+  "seed": 0,
+  "params": {
+    "color": [
+      255,
+      255,
+      255
+    ],
+    "period": 4.0,
+    "min_level": 0.05
+  }
+}

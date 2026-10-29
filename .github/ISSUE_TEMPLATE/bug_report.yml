@@ -1,0 +1,214 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the sections below to help us diagnose and fix the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: Tell us what happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: Tell us what should have happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Install pyddp with '...'
+        2. Run command '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Code Sample
+      description: Minimal code sample that reproduces the issue
+      placeholder: |
+        ```python
+        import asyncio
+        from pyddp import DDPSender, Strip, Segment
+
+        async def main():
+            strip = Strip(host="192.168.1.50", pixel_count=300)
+            roof = Segment("roofline", start=0, length=300)
+            async with DDPSender(strip) as tx:
+                await tx.fill(roof, rgb=(255, 140, 40), brightness=0.5)
+        ```
+      render: python
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs
+      description: Relevant error messages, stack traces, or debug output
+      placeholder: Paste error logs here
+      render: shell
+    validations:
+      required: false
+
+  - type: input
+    id: controller-model
+    attributes:
+      label: Controller Model
+      description: The LED controller receiving DDP
+      placeholder: e.g., Minleon NDB-Pro, WLED on ESP32, Falcon F16V4
+    validations:
+      required: true
+
+  - type: input
+    id: controller-firmware
+    attributes:
+      label: Controller Firmware Version
+      description: The firmware version running on the controller
+      placeholder: e.g., 1.2.3
+    validations:
+      required: false
+
+  - type: input
+    id: pixel-type
+    attributes:
+      label: Pixel Type
+      description: The pixel/LED chipset or product driven by the controller
+      placeholder: e.g., Rainmin RGB+, WS2812B, SK6812
+    validations:
+      required: false
+
+  - type: input
+    id: pixel-count
+    attributes:
+      label: Pixel Count
+      description: Pixel count configured in Strip, and the number physically connected
+      placeholder: e.g., 300 configured, 300 connected
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data-type
+    attributes:
+      label: Data Type
+      description: The data type configured on the Strip
+      options:
+        - RGB
+        - RGBW
+        - Other (please specify below)
+    validations:
+      required: true
+
+  - type: input
+    id: color-order
+    attributes:
+      label: Color Order
+      description: The color_order configured on the Strip
+      placeholder: e.g., RGB, GRB
+    validations:
+      required: false
+
+  - type: dropdown
+    id: connection-type
+    attributes:
+      label: Network Path
+      description: How does DDP traffic reach the controller?
+      options:
+        - Wired Ethernet, same subnet
+        - WiFi, same subnet
+        - Routed or VLAN
+        - VPN/Remote
+        - Other (please specify below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: network-topology
+    attributes:
+      label: Network Topology
+      description: Describe your network setup (optional but helpful for dropped-frame or latency issues)
+      placeholder: |
+        e.g., Controller -> PoE switch -> Router -> Python script on same LAN
+        or: Controller -> VLAN 40 -> Home Assistant host running pyddp
+    validations:
+      required: false
+
+  - type: input
+    id: pyddp-version
+    attributes:
+      label: pyddp Version
+      description: What version of pyddp are you using?
+      placeholder: e.g., 0.1.0 or output of 'pip show pyddp'
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: What version of Python are you using?
+      placeholder: e.g., 3.12.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What OS are you running on?
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Docker/Container
+        - Home Assistant OS
+        - Other (please specify below)
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS Version
+      description: Version or distribution details
+      placeholder: e.g., Ubuntu 22.04, macOS 14.1, Windows 11
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context, screenshots, or information that might be helpful
+      placeholder: Add any other context about the problem here
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have provided all relevant information above
+          required: true
+        - label: I am using a supported Python version (3.12+)
+          required: true

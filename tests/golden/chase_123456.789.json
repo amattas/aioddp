@@ -1,0 +1,23 @@
+{
+  "effect": "chase",
+  "length": 300,
+  "t": 123456.789,
+  "seed": 0,
+  "params": {
+    "colors": [
+      [
+        255,
+        255,
+        255
+      ]
+    ],
+    "speed": 8.0,
+    "spacing": 3,
+    "width": 1,
+    "background": [
+      0,
+      0,
+      0
+    ]
+  }
+}

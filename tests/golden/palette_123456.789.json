@@ -1,0 +1,21 @@
+{
+  "effect": "palette",
+  "length": 300,
+  "t": 123456.789,
+  "seed": 0,
+  "params": {
+    "colors": [
+      [
+        255,
+        0,
+        0
+      ],
+      [
+        0,
+        255,
+        0
+      ]
+    ],
+    "block_size": 1
+  }
+}

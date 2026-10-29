@@ -1,0 +1,11 @@
+{
+  "effect": "rainbow",
+  "length": 300,
+  "t": 0.0,
+  "seed": 0,
+  "params": {
+    "speed": 0.1,
+    "spread": 1.0,
+    "saturation": 1.0
+  }
+}

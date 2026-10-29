@@ -86,7 +86,7 @@ Colors below are RGB tuples. Defaults are chosen to look right on a roofline at 
 | `width` | int | `1` | 1 to `spacing` |
 | `background` | color | `(0, 0, 0)` | |
 
-`shift = floor(t * speed) mod spacing`. Pixel `i` is lit when `(i - shift) mod spacing < width`. A lit pixel's color is `colors[((i - shift) // spacing) mod len(colors)]` so multi-color chases keep their color blocks moving with the chase. Unlit pixels get `background`. `width > spacing` is a validation error (checked in `validate_params` as a cross-param rule).
+`shift = floor(t * speed) mod (spacing * len(colors))`. Wrapping at the full color cycle rather than at `spacing` keeps multi-color blocks moving instead of snapping back every `spacing` steps; the lit pattern is the same either way. Pixel `i` is lit when `(i - shift) mod spacing < width`. A lit pixel's color is `colors[((i - shift) // spacing) mod len(colors)]` so multi-color chases keep their color blocks moving with the chase. Unlit pixels get `background`. `width > spacing` is a validation error (checked in `validate_params` as a cross-param rule).
 
 ### twinkle
 
@@ -120,7 +120,7 @@ Pixel `i` is `colors[(i // block_size) mod len(colors)]`. Holiday and team-color
 
 ## Determinism
 
-`seed` defaults to 0 in the runner when the caller passes `None`, so two runners with the same inputs produce identical frames. Only `twinkle` consumes the seed in v1; the others accept and ignore it. Tests render every effect at `t` in `{0, 0.5, 123456.789}` with a fixed seed and compare against golden bytes checked into `tests/golden/<effect>_<t>.bin` plus a `.txt` of the params. Regenerating goldens is an explicit `python -m tests.golden --write` step, never automatic.
+`seed` defaults to 0 in the runner when the caller passes `None`, so two runners with the same inputs produce identical frames. Only `twinkle` consumes the seed in v1; the others accept and ignore it. Tests render every effect at `t` in `{0, 0.5, 123456.789}` with a fixed seed and compare against golden bytes checked into `tests/golden/<effect>_<t>.bin` plus a `.json` sidecar with the effect, length (300), t, seed, and merged params. Regenerating goldens is an explicit `python -m tests.golden --write` step, never automatic.
 
 ## Tests (`tests/test_effects.py`)
 

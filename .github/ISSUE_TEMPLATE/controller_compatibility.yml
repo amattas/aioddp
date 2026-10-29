@@ -1,0 +1,183 @@
+name: Controller Compatibility Report
+description: Report how a DDP controller behaves with pyddp
+title: "[Compatibility]: "
+labels: ["compatibility", "documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help us expand docs/compatibility.md by reporting how your DDP controller behaves!
+
+        Run the hardware checklist in docs/compatibility.md ("How to test a controller") with the `pyddp` CLI and report the answers below.
+
+        This is not for bug reports - use the Bug Report template if something isn't working correctly.
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: Compatibility Status
+      description: Does pyddp work with your controller?
+      options:
+        - Fully working
+        - Mostly working (see notes)
+        - Partially working (some features broken)
+        - Not working
+        - Untested (requesting information)
+    validations:
+      required: true
+
+  - type: input
+    id: controller-model
+    attributes:
+      label: Controller Model
+      description: Exact controller model
+      placeholder: e.g., Minleon NDB-Pro
+    validations:
+      required: true
+
+  - type: input
+    id: controller-firmware
+    attributes:
+      label: Controller Firmware Version
+      description: The firmware version running on the controller
+      placeholder: e.g., 1.2.3
+    validations:
+      required: true
+
+  - type: input
+    id: pixel-type
+    attributes:
+      label: Pixel Type
+      description: The pixel/LED chipset or product driven during testing
+      placeholder: e.g., Rainmin RGB+, WS2812B
+    validations:
+      required: true
+
+  - type: input
+    id: outputs-used
+    attributes:
+      label: Outputs Used
+      description: How many controller outputs were connected, and pixels per output
+      placeholder: e.g., 2 of 8 outputs, 150 pixels each
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data-type-byte
+    attributes:
+      label: Honors the data type byte?
+      description: "`pyddp fill --data-type-byte 1` then `--data-type-byte 0`. Does the controller care about the byte?"
+      options:
+        - Yes, only the standard byte works (0x0B RGB / 0x1B RGBW)
+        - Yes, it expects a legacy value (see notes)
+        - No, it accepts any value
+        - Not tested
+    validations:
+      required: true
+
+  - type: dropdown
+    id: offset-layout
+    attributes:
+      label: Offset layout
+      description: "`pyddp fill --segment 500:10` on a controller whose outputs each have fewer than 500 pixels. Flat buffer or per-output?"
+      options:
+        - Flat buffer across all outputs
+        - Per-output offsets
+        - Other (see notes)
+        - Not tested
+    validations:
+      required: true
+
+  - type: dropdown
+    id: stop-behavior
+    attributes:
+      label: Behavior when DDP stops
+      description: "`pyddp fill`, then wait. What does the controller do?"
+      options:
+        - Holds the last frame
+        - Blanks
+        - Falls back to built-in effects
+        - Not tested
+    validations:
+      required: true
+
+  - type: input
+    id: stop-timeout
+    attributes:
+      label: Time until it blanks or falls back
+      description: Seconds after the last packet (leave blank if it holds the last frame)
+      placeholder: e.g., 5 seconds
+    validations:
+      required: false
+
+  - type: dropdown
+    id: gamma
+    attributes:
+      label: Applies its own gamma?
+      description: "`pyddp fill --color 808080 --no-gamma` vs `--gamma 2.2`. Which one looks like half brightness?"
+      options:
+        - No, pyddp gamma 2.2 looks right
+        - Yes, --no-gamma looks right
+        - Unsure
+        - Not tested
+    validations:
+      required: true
+
+  - type: dropdown
+    id: push-latch
+    attributes:
+      label: Honors a zero-length push latch?
+      description: Send two segments with push=False, then a zero-length push. Does the controller latch the frame?
+      options:
+        - Yes, the frame latches on the zero-length push
+        - No, it only latches on a packet with data and push
+        - Not tested
+    validations:
+      required: true
+
+  - type: input
+    id: pyddp-version
+    attributes:
+      label: pyddp Version Tested
+      description: What version of pyddp did you test with?
+      placeholder: e.g., 0.1.0 or output of 'pyddp version'
+    validations:
+      required: true
+
+  - type: textarea
+    id: config-notes
+    attributes:
+      label: Configuration Notes
+      description: Controller settings required (DDP input enabled, universe or output mapping, color order, etc.)
+      placeholder: |
+        e.g., DDP input enabled in the web UI, outputs mapped sequentially, color order GRB
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Notes
+      description: Quirks, recommended settings, known issues, etc.
+      placeholder: Controller-specific notes
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: willing-to-help
+    attributes:
+      label: Ongoing Support
+      options:
+        - label: I am willing to help test future releases with this controller
+        - label: I can provide additional information if needed
+        - label: I can provide a packet capture if needed
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have tested with the latest version of pyddp
+          required: true
+        - label: I have provided accurate controller model and firmware information
+          required: true

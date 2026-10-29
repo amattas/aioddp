@@ -1,0 +1,32 @@
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Build / dependency output
+dist/
+build/
+*.egg-info/
+.venv/
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+coverage/
+.coverage
+.build/
+
+htmlcov/
+coverage.xml
+*.py[cod]
+.env
+
+# Local CLI config (host, pixel count)
+config.yaml
+
+# Zensical docs: built site, cache, and generated API reference
+/site
+.cache/
+docs/api/reference.md
+coverage.json
