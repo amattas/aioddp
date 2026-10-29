@@ -16,7 +16,7 @@ First target: Minleon NDB-Pro driving Rainmin RGB+ pixels. Nothing in the librar
 
 ### What This Is NOT
 - Not a Home Assistant integration (hass-ddp is; it imports pyddp and holds no protocol code)
-- Not a DDP receiver
+- Not a DDP receiver (the only thing it reads is a JSON reply to its own layout query)
 - Not an E1.31, Art-Net, or DMX sender
 - Not an xLights sequence player
 - Not audio-reactive
@@ -53,6 +53,7 @@ pyddp/
 │   ├── color.py          # Gamma, brightness, Kelvin, brightness cap, color order
 │   ├── effects/          # base.py (contract, params), registry, one module per effect
 │   ├── runner.py         # EffectRunner, fade()
+│   ├── discovery.py      # ControllerLayout from a DDP JSON config query or the same document over HTTP
 │   ├── const.py          # Port, header sizes, flag bits, data type codes, defaults
 │   ├── exceptions.py     # PyDDPError hierarchy
 │   └── cli.py            # pyddp command (click + rich), [cli] extra
@@ -69,8 +70,11 @@ pyddp/
 - `DDPSender(strip, keepalive_interval=None)`: `send_frame`, `fill`, `off`, `push`, `close`. No raw-bytes send path
 - `EffectRunner(sender, segment, effect, fps, params, brightness, seed)`: `start`, `stop`, `update`, `wait`
 - `Effect`: pure `render(length, t, params, seed) -> bytes` of canonical RGB
+- `discover(host) -> ControllerLayout | None`: pixel count and one `OutputInfo` per output from a DDP query (destinations 250/251) or the same JSON over HTTP; `layout.segments()` is one `Segment` per active output. `DDPSender.query(destination)` is the raw read
 
-Exceptions: `PyDDPError` > `ConfigError`, `DDPSendError`, `EffectError`.
+Exceptions: `PyDDPError` > `ConfigError`, `DDPSendError`, `EffectError`, `DDPQueryError`.
+
+Discovery is best effort and the only vendor-aware code: `fetch_layout_http` defaults to the `/api/config` and `/api/status` paths the Minleon NDB-Pro serves, parsing the DDP-spec JSON document. No scraping, no vendor-specific protocol code.
 
 ## DDP Protocol Essentials
 
@@ -87,6 +91,7 @@ UDP to port 4048. 10-byte header followed by raw pixel bytes.
 | 10+ | Data | Pixel bytes in the strip's channel order |
 
 - Max payload 1440 bytes per packet (480 RGB or 360 RGBW pixels); push only on the last packet
+- Query flag (`0x02`) to destination 250 (JSON config) or 251 (JSON status) asks for a reply (flag `0x04`, push on the last packet). Optional; the NDB-Pro ignores it and serves the same JSON over HTTP instead
 - No acknowledgement, no priority: one sender per controller
 - Segments are byte ranges; to latch several together, send without push and push once at the end
 - `close()` does not blank the lights; blanking is an explicit `off()`
@@ -106,14 +111,14 @@ Every frame from any caller passes through `color.process_frame`:
 
 ## Development
 
-Python env is the mamba env `pyddp` (never base, never venv).
+Python env is the conda env `pyddp` (never base, never venv).
 
 ```bash
-mamba run -n pyddp python -m pytest -q
-mamba run -n pyddp ruff check .
-mamba run -n pyddp black --check .
-mamba run -n pyddp mypy
-mamba run -n pyddp python scripts/check_coverage.py
+conda run -n pyddp python -m pytest -q
+conda run -n pyddp ruff check .
+conda run -n pyddp black --check .
+conda run -n pyddp mypy
+conda run -n pyddp python scripts/check_coverage.py
 ```
 
 Coverage gates: 80% total, 95% on `protocol.py` and `color.py`.

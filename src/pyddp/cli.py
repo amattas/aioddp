@@ -30,6 +30,7 @@ except ImportError as err:  # pragma: no cover - exercised only without the extr
 
 from pyddp.color import Color, kelvin_to_rgb, parse_color, solid_pixels
 from pyddp.const import DDP_PORT, DEFAULT_FPS, DEFAULT_GAMMA, DataType
+from pyddp.discovery import ControllerLayout, fetch_layout_http, query_layout
 from pyddp.effects import Effect, ParamSpec, get_effect, list_effects
 from pyddp.exceptions import ConfigError, DDPSendError, EffectError, PyDDPError
 from pyddp.runner import EffectRunner
@@ -60,6 +61,7 @@ _STRIP_KEYS = frozenset(
 _SEGMENT_KEYS = frozenset({"start", "length", "reverse"})
 _DATA_TYPES = {"rgb": DataType.RGB, "rgbw": DataType.RGBW}
 _ADHOC_SEGMENT = re.compile(r"(\d+):(\d+)(:r)?")
+_PLAIN_YAML_HOST = re.compile(r"[A-Za-z0-9][A-Za-z0-9.-]*")
 _STATUS_REFRESH_PER_SECOND = 2
 
 
@@ -222,8 +224,8 @@ def _load_config(opts: _Options) -> dict[str, Any]:
     return dict(strip)
 
 
-def _build_strip(ctx: click.Context) -> Strip:
-    """Merge library defaults < config file < command-line flags into a validated ``Strip``."""
+def _merged_values(ctx: click.Context) -> dict[str, Any]:
+    """Library defaults < config file < command-line flags, unvalidated except that a host is required."""
     opts = _options(ctx)
     values: dict[str, Any] = {"brightness_cap": CLI_BRIGHTNESS_CAP, **_load_config(opts)}
     flags = {
@@ -241,6 +243,12 @@ def _build_strip(ctx: click.Context) -> Strip:
         values["gamma"] = None
     if not values.get("host"):
         raise click.UsageError("no host: pass --host or set strip.host in config.yaml")
+    return values
+
+
+def _build_strip(ctx: click.Context) -> Strip:
+    """Merge library defaults < config file < command-line flags into a validated ``Strip``."""
+    values = _merged_values(ctx)
     if values.get("pixel_count") is None:
         raise click.UsageError("no pixel count: pass --count or set strip.pixel_count in config.yaml")
     raw_type = values.get("data_type", "rgb")
@@ -579,6 +587,101 @@ def effects(ctx: click.Context, as_json: bool) -> None:
         params = "\n".join(_param_line(key, spec) for key, spec in info.params.items())
         table.add_row(info.name, "yes" if info.static else "no", info.description, params)
     Console().print(table)
+
+
+def _layout_json(layout: ControllerLayout) -> str:
+    data_type = layout.data_type
+    return json.dumps(
+        {
+            "host": layout.host,
+            "source": layout.source,
+            "manufacturer": layout.manufacturer,
+            "model": layout.model,
+            "firmware": layout.firmware,
+            "protocol": layout.protocol,
+            "pixel_count": layout.pixel_count,
+            "channels": layout.channels,
+            "data_type": data_type.name.lower() if data_type is not None else None,
+            "outputs": [
+                {
+                    "index": o.index,
+                    "start": o.start,
+                    "length": o.length,
+                    "reversed_by_controller": o.reversed_by_controller,
+                }
+                for o in layout.outputs
+            ],
+            "config": dict(layout.config),
+            "status": dict(layout.status) if layout.status is not None else None,
+        },
+        indent=2,
+        allow_nan=False,
+    )
+
+
+def _layout_text(layout: ControllerLayout) -> str:
+    """Human summary plus a ready-to-paste config.yaml snippet."""
+    parts: list[str] = []
+    if layout.model or layout.manufacturer:
+        parts.append(f"{layout.model or 'Controller'}" + (f" by {layout.manufacturer}" if layout.manufacturer else ""))
+    if layout.firmware:
+        parts.append(f"firmware {layout.firmware}")
+    where = f"at {layout.host} via {layout.source}" + (f" (protocol {layout.protocol})" if layout.protocol else "")
+    parts.append(where if parts else f"Controller {where}")
+    lines = [", ".join(parts), f"{'Output':<8}{'Pixels':<8}{'Start':<7}Reversed by controller"]
+    for o in layout.active_outputs:
+        lines.append(f"{o.index + 1:<8}{o.length:<8}{o.start:<7}{'yes' if o.reversed_by_controller else 'no'}")
+    unused = len(layout.outputs) - len(layout.active_outputs)
+    if unused:
+        lines.append(f"{unused} unused output{'s' if unused != 1 else ''}")
+    data_type = layout.data_type
+    type_name = data_type.name.lower() if data_type is not None else None
+    lines.append(
+        f"Total {layout.pixel_count} pixels, {layout.channels} channels per pixel"
+        + (f" ({type_name})" if type_name else "")
+    )
+    if layout.pixel_count:
+        host = layout.host if _PLAIN_YAML_HOST.fullmatch(layout.host) else json.dumps(layout.host)
+        lines += ["", "config.yaml:", "strip:", f"  host: {host}", f"  pixel_count: {layout.pixel_count}"]
+        if type_name:
+            lines.append(f"  data_type: {type_name}")
+        lines.append("segments:")
+        lines += [f"  {s.name}: {{ start: {s.start}, length: {s.length} }}" for s in layout.segments()]
+    return "\n".join(lines)
+
+
+@cli.command()
+@click.option(
+    "--timeout", type=click.FloatRange(min=0, min_open=True), default=1.0, show_default=True, help="DDP query wait."
+)
+@click.option("--http-port", type=click.IntRange(1, 0xFFFF), default=80, show_default=True)
+@click.option("--no-http", is_flag=True, help="Skip the HTTP /api/config fallback.")
+@_json_option
+@click.pass_context
+def query(ctx: click.Context, timeout: float, http_port: int, no_http: bool, as_json: bool) -> None:
+    """Ask the controller for its output layout (DDP query, then HTTP) and print a config snippet. Needs no --count."""
+    with _reported_errors(ctx):
+        values = _merged_values(ctx)
+        host: str = values["host"]
+        port: int = values.get("port", DDP_PORT)
+
+        async def run() -> ControllerLayout | None:
+            layout = await query_layout(host, port=port, timeout=timeout)
+            if layout is None and not no_http:
+                layout = await fetch_layout_http(host, port=http_port)
+            return layout
+
+        layout = asyncio.run(run())
+    if layout is None:
+        tried = "" if no_http else f" or an HTTP config request on port {http_port}"
+        raise _Failure(f"{host} did not answer a DDP query on port {port}{tried}", EXIT_SEND_ERROR)
+    if layout.protocol not in (None, "ddp"):
+        click.echo(f"warning: controller protocol is {layout.protocol}; set it to DDP", err=True)
+    if layout.data_type is None:
+        click.echo(f"warning: pyddp cannot drive {layout.channels}-channel pixels", err=True)
+    if not layout.pixel_count:
+        click.echo("warning: controller reports no pixels on any output", err=True)
+    click.echo(_layout_json(layout) if _wants_json(ctx, as_json) else _layout_text(layout))
 
 
 @cli.command("version")

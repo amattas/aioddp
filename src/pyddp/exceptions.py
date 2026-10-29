@@ -13,5 +13,9 @@ class DDPSendError(PyDDPError):
     """The sender cannot send at all: socket could not be opened or the sender is closed."""
 
 
+class DDPQueryError(PyDDPError):
+    """A controller answered a query or config request with something unusable: bad JSON, not an object, bad ports."""
+
+
 class EffectError(PyDDPError):
     """Unknown effect, bad effect params, or a render failure."""

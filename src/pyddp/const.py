@@ -22,6 +22,9 @@ SEQUENCE_MIN = 1
 SEQUENCE_MAX = 15  # low 4 bits; 0 means "sequence unused"
 
 DESTINATION_DEFAULT = 1  # default output device
+DESTINATION_CONTROL = 246  # JSON control read/write
+DESTINATION_CONFIG = 250  # JSON config, read with a query
+DESTINATION_STATUS = 251  # JSON status, read-only
 DESTINATION_ALL = 255
 
 DATA_TYPE_LEGACY = 0x01  # what older senders put in the data type byte

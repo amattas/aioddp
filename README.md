@@ -54,6 +54,7 @@ Host and pixel counts are placeholders.
 ## CLI Quick Start
 
 ```bash
+pyddp --host 10.0.40.20 query                           # ask the controller for its outputs; prints a config.yaml
 pyddp --host 10.0.40.20 --count 300 test                # walk a lit pixel down the string
 pyddp --host 10.0.40.20 --count 300 fill --color ff8800 --brightness 0.5
 pyddp --host 10.0.40.20 --count 300 effect chase --param speed=8
@@ -61,7 +62,16 @@ pyddp --host 10.0.40.20 --count 300 off
 pyddp effects                                           # list effects and params
 ```
 
-Run `pyddp test` first against new hardware. Host and count can also come from `config.yaml`; see `docs/superpowers/specs/2026-10-28-pyddp-cli.md`.
+Run `pyddp query` first against new hardware, then `pyddp test`. `query` uses the DDP JSON config query and falls back to the same document over HTTP, which is what the Minleon NDB-Pro serves; a controller that answers neither is configured by hand. Host and count can also come from `config.yaml`; see `docs/superpowers/specs/2026-10-28-pyddp-cli.md`.
+
+```python
+from pyddp import discover
+
+layout = await discover("10.0.40.20")
+if layout:
+    strip = Strip(host=layout.host, pixel_count=layout.pixel_count, data_type=layout.data_type)
+    segments = layout.segments()  # one per active controller output
+```
 
 ## Effects
 

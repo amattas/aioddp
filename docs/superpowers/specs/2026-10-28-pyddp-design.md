@@ -17,6 +17,7 @@ This document is the overview. Each module has a detail spec in this directory; 
 | `2026-10-28-pyddp-effects.md` | `effects/`: effect contract, param schema, registry, the six v1 effects |
 | `2026-10-28-pyddp-runner.md` | `runner.py`: `EffectRunner` loop, cancellation, `update`, `fade` |
 | `2026-10-28-pyddp-cli.md` | `cli.py`: commands, config file, exit codes |
+| `2026-10-29-pyddp-discovery.md` | `discovery.py` and `DDPSender.query`: DDP JSON query, config document parsing, HTTP fallback, `pyddp query` |
 | `2026-10-28-pyddp-testing.md` | fixtures, benchmark gate, file map, public exports, hardware checklist |
 
 ## Summary
@@ -49,7 +50,7 @@ UDP to port 4048. A 10-byte header followed by raw pixel bytes. A frame larger t
 
 | Bytes | Field | What we send |
 |---|---|---|
-| 0 | Flags | Version 1 (`0x40`), plus push (`0x01`) on the last packet of a frame. No timecode, storage, query, or reply bits |
+| 0 | Flags | Version 1 (`0x40`), plus push (`0x01`) on the last packet of a frame. Query (`0x02`) only on a layout read; never timecode or storage |
 | 1 | Sequence | Low 4 bits, cycling 1 to 15; 0 means unused |
 | 2 | Data type | `0x0B` for 8-bit RGB, `0x1B` for 8-bit RGBW. Configurable, since some receivers expect legacy `0x01` or ignore the field |
 | 3 | Destination ID | 1 (default output device) |
@@ -60,6 +61,7 @@ UDP to port 4048. A 10-byte header followed by raw pixel bytes. A frame larger t
 - Max payload per packet: 1440 bytes (480 RGB pixels, 360 RGBW). Larger frames go out as several packets with increasing offsets, push set only on the last.
 - No priority, no acknowledgement. Two senders on one controller fight; only one source talks at a time.
 - Segments are byte ranges. A segment can be sent as its own packet(s) at its own offset without merging frames. To latch several segments together, send them without push and push once at the end.
+- The protocol's optional read side (query flag to destination 250 for JSON config, 251 for JSON status) is the only way to learn a controller's layout. It is supported, best effort, and some controllers publish the same JSON over HTTP instead; see the discovery spec.
 
 ## Architecture
 
@@ -73,6 +75,7 @@ pyddp/
 │   ├── color.py          # Gamma, brightness scaling, Kelvin to RGB, brightness cap, color order
 │   ├── effects/          # base.py (contract, params), __init__.py (registry), one module per effect
 │   ├── runner.py         # EffectRunner: async task rendering one segment at a target fps; fade()
+│   ├── discovery.py      # ControllerLayout from a DDP JSON config query or the same document over HTTP
 │   ├── const.py          # Port, header sizes, flag bits, data type codes, defaults
 │   ├── exceptions.py     # PyDDPError hierarchy
 │   └── cli.py            # pyddp command (click + rich), [cli] extra
@@ -86,6 +89,7 @@ pyddp/
 - `DDPSender(strip, keepalive_interval=None)`: async context manager. `send_frame(pixels, segment=None, brightness=1.0, push=True)`, `fill(segment, color, brightness)`, `off(segment)`, `push()`, `close()`. Owns the sequence counter, a shadow buffer of the last wire bytes, and the optional keepalive task. There is no raw-bytes send: `send_frame` takes canonical RGB(W) pixels and always runs the color pipeline, which is how the cap is enforced
 - `EffectRunner(sender, segment, effect, fps=30, params=None, brightness=1.0, seed=None)`: `start()`, `stop()`, `update(params=, brightness=, fps=)`, `wait()`; cancels cleanly and never leaves an orphaned task. `fade(sender, segment, start, end, duration)` is the transition helper
 - `Effect` protocol: `render(length: int, t: float, params: Mapping, seed: int) -> bytes` returning `length * 3` canonical RGB bytes, plus a declared `params` schema with defaults and a `static` flag
+- `discover(host)`: `ControllerLayout` (pixel count, one `OutputInfo` per output, channels, identity) from a DDP query or an HTTP config fetch, or `None`; `layout.segments()` gives one `Segment` per active output. `DDPSender.query(destination)` is the underlying read
 
 ### Public API sketch
 
@@ -151,11 +155,12 @@ Installed via the `[cli]` extra (click, rich, pyyaml), same pattern as pydmp. Op
 - `pyddp effect <host> --count N --effect chase --fps 30 [--param speed=1.0]`
 - `pyddp off <host> --count N`
 - `pyddp test <host> --count N`: walks a single lit pixel down the string to confirm pixel count, channel order, and segment boundaries. First thing to run against real hardware
+- `pyddp query <host>`: asks the controller for its output layout and prints a ready-to-paste `config.yaml`; run it before `test` on a controller that answers
 - `pyddp effects`: list effects and their params
 
 ## Error handling and logging
 
-- Exception hierarchy rooted at `PyDDPError`: `ConfigError`, `DDPSendError`, `EffectError`
+- Exception hierarchy rooted at `PyDDPError`: `ConfigError`, `DDPSendError`, `EffectError`, `DDPQueryError`
 - Input validation: pixel count > 0, segments in range, brightness and cap in 0.0 to 1.0, fps in 1 to 60, data type in the supported set
 - Standard `logging`; never log full frames above DEBUG
 
@@ -192,9 +197,10 @@ Maintenance-only after 0.1.0 until school is done.
 
 - [ ] Is `pyddp` free on PyPI? If not, pick a name before scaffolding
 - [ ] Does the NDB-Pro honor the data type byte, or accept anything?
-- [ ] Does the NDB-Pro treat DDP offsets as one flat buffer across its 8 outputs, or per output?
+- [x] Does the NDB-Pro treat DDP offsets as one flat buffer across its 8 outputs, or per output? One flat buffer: each output has a 1-based starting slot in its config document (output 2 at slot 241 after 80 three-channel pixels on output 1). Answered 2026-10-29 by `pyddp query`; see `docs/compatibility.md`
+- [x] Can the layout be discovered? Not over DDP on the NDB-Pro (no reply to queries), but its `/api/config` serves the DDP JSON config document over HTTP; `discover()` tries both
 - [ ] What does the NDB-Pro do when DDP stops: hold, blank, or fall back to built-in effects, and after how long? Decides the keepalive default
 - [ ] Does the NDB-Pro apply its own gamma? Decides whether ours is on by default
 - [ ] Is a sync wrapper worth it (pydmp has one), or is the CLI enough for scripting? The sender spec recommends dropping it from 0.1.0; `sender_sync.py` is out of the tree until someone asks
 
-The first five are answered by the hardware checklist at the end of the testing spec and recorded in `docs/compatibility.md`.
+The remaining hardware questions are answered by the checklist at the end of the testing spec and recorded in `docs/compatibility.md`.

@@ -7,12 +7,22 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 from dataclasses import dataclass
 from types import TracebackType
+from typing import Any
 
 from pyddp.color import Color, expand_rgb_to_rgbw, process_frame, solid_pixels
-from pyddp.exceptions import ConfigError, DDPSendError
-from pyddp.protocol import DDPHeader, SequenceCounter, build_packets, build_push_packet
+from pyddp.const import DESTINATION_CONFIG, HEADER_SIZE
+from pyddp.exceptions import ConfigError, DDPQueryError, DDPSendError
+from pyddp.protocol import (
+    DDPHeader,
+    SequenceCounter,
+    build_packets,
+    build_push_packet,
+    build_query_packet,
+    decode_json_document,
+)
 from pyddp.strip import Segment, Strip
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,6 +39,7 @@ class SenderStats:
     bytes_sent: int = 0
     frames_sent: int = 0
     keepalives_sent: int = 0
+    replies_received: int = 0
     send_errors: int = 0
     last_send: float | None = None  # loop.time()
     last_frame: bytes = b""  # copy of the shadow buffer at last send
@@ -39,6 +50,9 @@ class _DDPProtocol(asyncio.DatagramProtocol):
 
     def __init__(self, sender: DDPSender) -> None:
         self._sender = sender
+
+    def datagram_received(self, data: bytes, addr: tuple[str | Any, int]) -> None:
+        self._sender._on_datagram_received(data)
 
     def error_received(self, exc: Exception) -> None:
         self._sender._on_error_received(exc)
@@ -71,6 +85,8 @@ class DDPSender:
         self._protocol: _DDPProtocol | None = None
         self._keepalive_task: asyncio.Task[None] | None = None
         self._seen_errnos: set[int | None] = set()
+        self._pending: dict[int, asyncio.Future[bytes]] = {}  # destination -> reply payload
+        self._reply_chunks: dict[int, dict[int, bytes]] = {}  # destination -> offset -> data; repeats replace
         self._lifecycle = asyncio.Lock()  # serializes open() and close()
 
     @property
@@ -118,6 +134,7 @@ class DDPSender:
                 transport, self._transport, self._protocol = self._transport, None, None
                 if transport is not None:
                     transport.close()
+                self._fail_pending()
 
     async def __aenter__(self) -> DDPSender:
         await self.open()
@@ -185,6 +202,36 @@ class DDPSender:
         packet = build_push_packet(sequence=self._seq, data_type=strip.wire_data_type, destination=strip.destination_id)
         self._send(transport, [packet])
 
+    async def query(self, destination: int = DESTINATION_CONFIG, *, timeout: float = 1.0) -> dict[str, Any] | None:
+        """Send a DDP query and return the reply's JSON object, or ``None`` on timeout or an empty reply.
+
+        Raises ``DDPQueryError`` for a reply that is not a JSON object, ``DDPSendError`` if the sender is not open
+        or closes while waiting, and ``RuntimeError`` if a query to ``destination`` is already pending.
+        """
+        transport = self._require_open()
+        valid = isinstance(timeout, int | float) and not isinstance(timeout, bool) and math.isfinite(timeout)
+        if not valid or timeout <= 0:
+            raise ConfigError(f"timeout must be a positive finite number of seconds, got {timeout!r}")
+        if destination in self._pending:
+            raise RuntimeError(f"a query to destination {destination} is already pending on this sender")
+        packet = build_query_packet(sequence=self._seq, destination=destination)
+        future: asyncio.Future[bytes] = asyncio.get_running_loop().create_future()
+        self._pending[destination] = future
+        self._reply_chunks[destination] = {}
+        try:
+            self._send(transport, [packet])
+            try:
+                async with asyncio.timeout(timeout):
+                    payload = await future
+            except TimeoutError:
+                _LOGGER.debug("no reply from %s to query for destination %d", self._strip.host, destination)
+                return None
+        finally:
+            del self._pending[destination]
+            del self._reply_chunks[destination]
+        _LOGGER.debug("reply from %s for destination %d: %r", self._strip.host, destination, payload)
+        return decode_json_document(payload, what=f"{self._strip.host} destination {destination}")
+
     def _require_open(self) -> asyncio.DatagramTransport:
         if self._transport is None:
             raise DDPSendError(f"sender for {self._strip.host}:{self._strip.port} is not open")
@@ -198,7 +245,7 @@ class DDPSender:
             if debug:
                 header = DDPHeader.decode(packet)
                 _LOGGER.debug(
-                    "send %s seq=%d type=0x%02x dest=%d offset=%d length=%d push=%s",
+                    "send %s seq=%d type=0x%02x dest=%d offset=%d length=%d push=%s query=%s",
                     self._strip.host,
                     header.sequence,
                     header.data_type,
@@ -206,6 +253,7 @@ class DDPSender:
                     header.offset,
                     header.length,
                     header.push,
+                    header.query,
                 )
             try:
                 transport.sendto(packet)
@@ -252,6 +300,37 @@ class DDPSender:
             if current is not None and current.cancelling() > cancelling:
                 raise
 
+    def _on_datagram_received(self, data: bytes) -> None:
+        """Collect reply packets for a pending query; on push, join them in offset order if none is missing."""
+        if len(data) < HEADER_SIZE:
+            return
+        header = DDPHeader.decode(data)
+        future = self._pending.get(header.destination)
+        if not header.reply or future is None or future.done():
+            return
+        chunks = self._reply_chunks[header.destination]
+        chunks[header.offset] = data[HEADER_SIZE : HEADER_SIZE + header.length]
+        if not header.push:
+            return
+        expected = 0
+        for offset in sorted(chunks):
+            if offset != expected:
+                future.set_exception(
+                    DDPQueryError(
+                        f"reply from {self._strip.host} destination {header.destination} is incomplete: "
+                        f"missing bytes at offset {expected}"
+                    )
+                )
+                return
+            expected += len(chunks[offset])
+        future.set_result(b"".join(chunks[offset] for offset in sorted(chunks)))
+        self._stats.replies_received += 1
+
+    def _fail_pending(self) -> None:
+        for future in self._pending.values():
+            if not future.done():
+                future.set_exception(DDPSendError("sender closed"))
+
     def _on_error_received(self, exc: Exception) -> None:
         self._stats.send_errors += 1
         code = exc.errno if isinstance(exc, OSError) else None
@@ -263,6 +342,7 @@ class DDPSender:
         if protocol is not self._protocol:
             return  # stale callback from a transport this sender already closed
         self._transport, self._protocol = None, None
+        self._fail_pending()
         if self._keepalive_task is not None:
             self._keepalive_task.cancel()  # close() or the next open() awaits it
         if exc is not None:

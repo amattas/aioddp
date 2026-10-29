@@ -19,7 +19,7 @@ from click.testing import CliRunner, Result
 
 from pyddp.cli import cli
 from pyddp.effects import EFFECTS
-from tests.conftest import UDPListener
+from tests.conftest import HTTPController, UDPListener, ndb_responder
 
 WHITE = bytes([255, 255, 255])
 
@@ -278,3 +278,93 @@ def test_log_handler_shows_tracebacks_only_when_asked(capsys: pytest.CaptureFixt
     err = capsys.readouterr().err
     assert "effect failed" in err
     assert ("Traceback" in err) == tracebacks
+
+
+async def test_query_prints_layout_and_config_snippet_without_count(run: CLI) -> None:
+    run.listener.responder = ndb_responder
+    result = await run("--host", run.listener.host, "--port", str(run.listener.port), "query", "--no-http")
+    assert result.exit_code == 0, result.output
+    lines = result.stdout.splitlines()
+    assert lines[0] == "NDBPRO by 3WL, firmware 2.0, at 127.0.0.1 via ddp (protocol ddp)"
+    assert lines[1:5] == [
+        "Output  Pixels  Start  Reversed by controller",
+        "1       80      0      yes",
+        "2       42      80     no",
+        "6 unused outputs",
+    ]
+    assert "Total 122 pixels, 3 channels per pixel (rgb)" in lines
+    assert result.stdout.endswith(
+        "strip:\n  host: 127.0.0.1\n  pixel_count: 122\n  data_type: rgb\nsegments:\n"
+        "  output1: { start: 0, length: 80 }\n  output2: { start: 80, length: 42 }\n"
+    )
+    assert result.stderr == ""
+
+
+@pytest.mark.parametrize("udp_answers", [True, False], ids=["ddp", "http-fallback"])
+async def test_query_json_from_ddp_or_http(run: CLI, http_controller: HTTPController, udp_answers: bool) -> None:
+    if udp_answers:
+        run.listener.responder = ndb_responder
+    target = ["--host", run.listener.host, "--port", str(run.listener.port)]
+    result = await run(*target, "query", "--json", "--timeout", "0.1", "--http-port", str(http_controller.port))
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.stdout)
+    assert (data["source"], data["pixel_count"], data["channels"], data["data_type"]) == (
+        "ddp" if udp_answers else "http",
+        122,
+        3,
+        "rgb",
+    )
+    assert (data["model"], data["firmware"], data["protocol"]) == ("NDBPRO", "2.0", "ddp")
+    assert data["outputs"][:2] == [
+        {"index": 0, "start": 0, "length": 80, "reversed_by_controller": True},
+        {"index": 1, "start": 80, "length": 42, "reversed_by_controller": False},
+    ]
+    assert data["config"]["conv"] == 13
+    assert data["status"]["man"] == "3WL"
+
+
+@pytest.mark.parametrize(
+    ("routes", "warnings", "absent"),
+    [
+        (
+            {"/api/status": None, "/api/config": b'{"config": {"proto": 2, "conv": 3, "ports": [{"l": 4, "ss": 1}]}}'},
+            ["controller protocol is e131; set it to DDP", "pyddp cannot drive 1-channel pixels"],
+            ["data_type", "firmware"],
+        ),
+        (
+            {"/api/status": None, "/api/config": b'{"config": {"ports": [{"l": 0, "ss": 1}]}}'},
+            ["reports no pixels"],
+            ["strip:"],
+        ),
+    ],
+    ids=["e131-single-channel-no-status", "no-pixels"],
+)
+async def test_query_warns_about_unusable_layouts(
+    run: CLI, http_controller: HTTPController, routes: dict[str, bytes | None], warnings: list[str], absent: list[str]
+) -> None:
+    http_controller.routes.update(routes)
+    target = ["--host", run.listener.host, "--port", str(run.listener.port)]
+    result = await run(*target, "query", "--timeout", "0.05", "--http-port", str(http_controller.port))
+    assert result.exit_code == 0, result.output
+    assert all(w in result.stderr for w in warnings)
+    assert not any(a in result.stdout for a in absent)
+    assert result.stdout.startswith("Controller at 127.0.0.1 via http")
+
+
+@pytest.mark.parametrize(
+    ("args", "code", "message"),
+    [
+        (["query", "--no-http"], 2, "did not answer a DDP query on port"),
+        (["query", "--http-port", "{http}"], 1, "/api/config"),
+    ],
+    ids=["no-answer", "bad-http-json"],
+)
+async def test_query_failures_exit_with_mapped_code(
+    run: CLI, http_controller: HTTPController, args: list[str], code: int, message: str
+) -> None:
+    http_controller.routes["/api/config"] = b"<html>"
+    target = ["--host", run.listener.host, "--port", str(run.listener.port)]
+    argv = [a.format(http=http_controller.port) for a in args]
+    result = await run(*target, *argv, "--timeout", "0.05")
+    assert result.exit_code == code, result.output
+    assert message in result.stderr

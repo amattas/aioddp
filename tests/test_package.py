@@ -12,10 +12,11 @@ SPEC_EXPORTS = {
     "__version__",
     *("Strip", "Segment", "DataType"),
     *("DDPSender", "SenderStats"),
+    *("ControllerLayout", "OutputInfo", "discover"),
     *("EffectRunner", "RunnerStats", "fade", "get_effect", "list_effects", "validate_params"),
     *("EffectInfo", "ParamSpec"),
     *("parse_color", "kelvin_to_rgb", "process_frame"),
-    *("PyDDPError", "ConfigError", "DDPSendError", "EffectError"),
+    *("PyDDPError", "ConfigError", "DDPSendError", "DDPQueryError", "EffectError"),
     *("DDP_PORT", "DEFAULT_FPS", "MAX_FPS", "DEFAULT_GAMMA"),
 }
 

@@ -71,6 +71,14 @@ class DDPSender:
 
 Declared `async` even though `sendto` does not await, so the API does not change if pacing is added and so hass-ddp's call sites are uniform.
 
+## Querying
+
+```python
+    async def query(self, destination: int = DESTINATION_CONFIG, *, timeout: float = 1.0) -> dict[str, Any] | None
+```
+
+The one read path. Sends `build_query_packet` and waits up to `timeout` for reply packets (reply flag set, matching destination) until one carries push; returns the parsed JSON object, `None` on timeout or an empty reply, `DDPQueryError` on an unparseable one. `_DDPProtocol.datagram_received` exists only to feed this; every other datagram is dropped. Full contract, including concurrency and close behavior, is in `2026-10-29-pyddp-discovery.md`.
+
 ## Shadow buffer
 
 `self._shadow = bytearray(strip.frame_size)` holds the last wire bytes sent for every position, initially all zero. Three things read it:
@@ -109,6 +117,7 @@ class SenderStats:
     frames_sent: int = 0
     keepalives_sent: int = 0
     send_errors: int = 0
+    replies_received: int = 0          # completed query replies
     last_send: float | None = None     # loop.time()
     last_frame: bytes = b""             # copy of the shadow buffer at last send
 ```
@@ -135,6 +144,7 @@ All against the `udp_listener` fixture from the testing spec; no mocking of asyn
 - `close()` cancels keepalive (no pending tasks after, asserted via `asyncio.all_tasks`), second `close()` is a no-op, `send_frame` after close raises `DDPSendError`
 - Unresolvable host raises `DDPSendError` from `open()`
 - `error_received` increments `send_errors` and does not raise
+- `query`: the listener fixture's `responder` hook answers; full, split, empty, malformed, and absent replies, plus close while pending (cases listed in the discovery spec)
 
 ## Deferred: sync wrapper
 

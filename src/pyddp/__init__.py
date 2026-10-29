@@ -4,8 +4,9 @@ from importlib.metadata import PackageNotFoundError, version
 
 from pyddp.color import kelvin_to_rgb, parse_color, process_frame
 from pyddp.const import DDP_PORT, DEFAULT_FPS, DEFAULT_GAMMA, MAX_FPS, DataType
+from pyddp.discovery import ControllerLayout, OutputInfo, discover
 from pyddp.effects import EffectInfo, ParamSpec, get_effect, list_effects, validate_params
-from pyddp.exceptions import ConfigError, DDPSendError, EffectError, PyDDPError
+from pyddp.exceptions import ConfigError, DDPQueryError, DDPSendError, EffectError, PyDDPError
 from pyddp.runner import EffectRunner, RunnerStats, fade
 from pyddp.sender import DDPSender, SenderStats
 from pyddp.strip import Segment, Strip
@@ -24,6 +25,10 @@ __all__ = [
     # sending
     "DDPSender",
     "SenderStats",
+    # discovery
+    "ControllerLayout",
+    "OutputInfo",
+    "discover",
     # effects
     "EffectRunner",
     "RunnerStats",
@@ -41,6 +46,7 @@ __all__ = [
     "PyDDPError",
     "ConfigError",
     "DDPSendError",
+    "DDPQueryError",
     "EffectError",
     # constants
     "DDP_PORT",
