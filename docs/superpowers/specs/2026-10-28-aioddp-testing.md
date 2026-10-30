@@ -76,19 +76,40 @@ Parametrize over variations; one test per distinct behavior. The sender, runner,
 __all__ = [
     "__version__",
     # models
-    "Strip", "Segment", "DataType",
+    "Strip",
+    "Segment",
+    "DataType",
     # sending
-    "DDPSender", "SenderStats",
+    "DDPSender",
+    "SenderStats",
     # effects
-    "EffectRunner", "RunnerStats", "fade", "get_effect", "list_effects", "validate_params", "EffectInfo", "ParamSpec",
+    "EffectRunner",
+    "RunnerStats",
+    "fade",
+    "get_effect",
+    "list_effects",
+    "validate_params",
+    "EffectInfo",
+    "ParamSpec",
     # color
-    "parse_color", "kelvin_to_rgb", "process_frame",
+    "parse_color",
+    "kelvin_to_rgb",
+    "process_frame",
     # discovery
-    "ControllerLayout", "OutputInfo", "discover",
+    "ControllerLayout",
+    "OutputInfo",
+    "discover",
     # errors
-    "DDPError", "ConfigError", "DDPSendError", "EffectError", "DDPQueryError",
+    "DDPError",
+    "ConfigError",
+    "DDPSendError",
+    "EffectError",
+    "DDPQueryError",
     # constants
-    "DDP_PORT", "DEFAULT_FPS", "MAX_FPS", "DEFAULT_GAMMA",
+    "DDP_PORT",
+    "DEFAULT_FPS",
+    "MAX_FPS",
+    "DEFAULT_GAMMA",
 ]
 ```
 

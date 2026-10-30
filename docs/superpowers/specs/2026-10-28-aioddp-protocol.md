@@ -14,9 +14,9 @@ Everything that turns pixel bytes into DDP packets. No sockets, no color math. `
 ```python
 DDP_PORT = 4048
 HEADER_SIZE = 10
-MAX_DATA_LEN = 1440          # DDP recommended max payload; 480 RGB or 360 RGBW pixels
-MAX_OFFSET = 0xFFFF_FFFF     # 32-bit data offset
-HEADER_FORMAT = ">BBBBIH"    # flags, sequence, data type, destination, offset, length
+MAX_DATA_LEN = 1440  # DDP recommended max payload; 480 RGB or 360 RGBW pixels
+MAX_OFFSET = 0xFFFF_FFFF  # 32-bit data offset
+HEADER_FORMAT = ">BBBBIH"  # flags, sequence, data type, destination, offset, length
 
 FLAG_VERSION_MASK = 0xC0
 FLAG_VERSION_1 = 0x40
@@ -27,13 +27,13 @@ FLAG_QUERY = 0x02
 FLAG_PUSH = 0x01
 
 SEQUENCE_MIN = 1
-SEQUENCE_MAX = 15            # low 4 bits; 0 means "sequence unused"
+SEQUENCE_MAX = 15  # low 4 bits; 0 means "sequence unused"
 
-DESTINATION_DEFAULT = 1      # default output device
+DESTINATION_DEFAULT = 1  # default output device
 DESTINATION_ALL = 255
-DESTINATION_CONTROL = 246    # JSON control
-DESTINATION_CONFIG = 250     # JSON config, read by query
-DESTINATION_STATUS = 251     # JSON status, read by query
+DESTINATION_CONTROL = 246  # JSON control
+DESTINATION_CONFIG = 250  # JSON config, read by query
+DESTINATION_STATUS = 251  # JSON status, read by query
 
 DEFAULT_FPS = 30
 MAX_FPS = 60
@@ -47,8 +47,8 @@ The timecode and storage bits are named so the decoder can report them and tests
 
 ```python
 class DataType(Enum):
-    RGB = ("RGB", 3, 0x0B)       # type 001 (RGB), size 011 (8-bit)
-    RGBW = ("RGBW", 4, 0x1B)     # type 011 (RGBW), size 011 (8-bit)
+    RGB = ("RGB", 3, 0x0B)  # type 001 (RGB), size 011 (8-bit)
+    RGBW = ("RGBW", 4, 0x1B)  # type 011 (RGBW), size 011 (8-bit)
 
     @property
     def channels(self) -> int: ...
@@ -64,10 +64,18 @@ The DDP data type byte is `C R TTT SSS`: bit 7 customer-defined, bit 6 reserved,
 
 ```python
 class DDPError(Exception): ...
-class ConfigError(DDPError, ValueError): ...   # bad strip, segment, params, or color
-class DDPSendError(DDPError): ...               # socket could not be opened or sender is closed
-class EffectError(DDPError): ...                # unknown effect, bad params, or render failure
-class DDPQueryError(DDPError): ...              # a controller answered a query or config request with something unusable
+
+
+class ConfigError(DDPError, ValueError): ...  # bad strip, segment, params, or color
+
+
+class DDPSendError(DDPError): ...  # socket could not be opened or sender is closed
+
+
+class EffectError(DDPError): ...  # unknown effect, bad params, or render failure
+
+
+class DDPQueryError(DDPError): ...  # a controller answered a query or config request with something unusable
 ```
 
 `ConfigError` also subclasses `ValueError` so callers that validate user input generically still catch it. Transient UDP send errors are not exceptions (see the sender spec); `DDPSendError` is reserved for "this sender cannot send at all".

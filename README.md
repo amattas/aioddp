@@ -36,6 +36,7 @@ Requires Python 3.12+.
 import asyncio
 from aioddp import DDPSender, EffectRunner, Segment, Strip
 
+
 async def main():
     strip = Strip(host="10.0.40.20", pixel_count=300, brightness_cap=0.6)
     roof = Segment("roofline", start=0, length=260)
@@ -47,6 +48,7 @@ async def main():
         await runner.start()
         await asyncio.sleep(10)
         await runner.stop()
+
 
 asyncio.run(main())
 ```

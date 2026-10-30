@@ -125,9 +125,9 @@ class SenderStats:
     frames_sent: int = 0
     keepalives_sent: int = 0
     send_errors: int = 0
-    replies_received: int = 0          # completed query replies
-    last_send: float | None = None     # loop.time()
-    last_frame: bytes = b""             # copy of the shadow buffer at last send
+    replies_received: int = 0  # completed query replies
+    last_send: float | None = None  # loop.time()
+    last_frame: bytes = b""  # copy of the shadow buffer at last send
 ```
 
 `stats` returns the live object; hass-ddp diagnostics read it. It is not reset by `close()`.
