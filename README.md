@@ -2,7 +2,7 @@
 
 **Asyncio Python library for sending DDP pixel data to LED controllers**
 
-[![CI](https://github.com/amattas/aioddp/actions/workflows/ci.yml/badge.svg)](https://github.com/amattas/aioddp/actions/workflows/ci.yml)
+[![Checks](https://github.com/amattas/aioddp/actions/workflows/checks.yml/badge.svg)](https://github.com/amattas/aioddp/actions/workflows/checks.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 aioddp is a standalone, platform-agnostic library for sending DDP (Distributed Display Protocol) pixel data to LED controllers, with a small deterministic effect library and a bench-test CLI.
