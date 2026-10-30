@@ -50,6 +50,7 @@ class BaseEffect:
     """
 
     static: ClassVar[bool] = False
+    color_param: ClassVar[str | None] = None  # the param one user-picked color drives; see EffectInfo.color_params
 
     @classmethod
     def check_params(cls, params: Mapping[str, Any]) -> None:

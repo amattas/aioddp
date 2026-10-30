@@ -11,7 +11,7 @@ from typing import Any, ClassVar
 
 import pytest
 
-from pyddp.effects import EFFECTS, EffectInfo, get_effect, list_effects
+from pyddp.effects import EFFECTS, get_effect, list_effects
 from pyddp.effects.base import ParamSpec, validate_params
 from pyddp.exceptions import EffectError
 from tests import golden
@@ -57,11 +57,30 @@ def test_registry_names_and_lookup() -> None:
     assert NAMES == ["breathe", "chase", "palette", "rainbow", "solid", "twinkle"]
     assert all(get_effect(name) is EFFECTS[name] and EFFECTS[name].name == name for name in NAMES)
     infos = list_effects()
-    assert infos == [EffectInfo(e.name, e.description, e.static, e.params) for e in EFFECTS.values()]
+    assert [info[:4] for info in infos] == [(e.name, e.description, e.static, e.params) for e in EFFECTS.values()]
     assert {info.name for info in infos if info.static} == {"solid", "palette"}
     assert set(PERIOD_AT_DEFAULTS) == set(EFFECTS)
     with pytest.raises(EffectError, match="unknown effect 'sparkle'.*breathe.*twinkle"):
         get_effect("sparkle")
+
+
+@pytest.mark.parametrize(
+    ("name", "color_param", "expected"),
+    [
+        ("solid", "color", {"color": (10, 20, 30)}),
+        ("breathe", "color", {"color": (10, 20, 30)}),
+        ("chase", "colors", {"colors": [(10, 20, 30)]}),
+        ("twinkle", "sparkle_color", {"sparkle_color": (10, 20, 30)}),
+        ("rainbow", None, {}),
+        ("palette", None, {}),
+    ],
+)
+def test_color_param_maps_one_color_onto_effect(name: str, color_param: str | None, expected: dict[str, Any]) -> None:
+    info = next(info for info in list_effects() if info.name == name)
+    assert info.color_param == color_param
+    params = info.color_params((10, 20, 30))
+    assert params == expected
+    assert validate_params(EFFECTS[name], params) == validate_params(EFFECTS[name], None) | expected
 
 
 # --- contract rules, one parametrized test each -----------------------------

@@ -13,6 +13,7 @@ from pyddp.effects.base import BaseEffect, ParamSpec
 class Breathe(BaseEffect):
     name: ClassVar[str] = "breathe"
     description: ClassVar[str] = "Whole segment fades smoothly up and down"
+    color_param: ClassVar[str | None] = "color"
     params: ClassVar[Mapping[str, ParamSpec]] = {
         "color": ParamSpec("color", (255, 255, 255), "Color at full level"),
         "period": ParamSpec("float", 4.0, "Seconds per breath", 0.5, 60.0),

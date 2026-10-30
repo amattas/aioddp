@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
+from pyddp.color import RGB
 from pyddp.effects.base import Effect, ParamSpec, validate_params
 from pyddp.effects.breathe import Breathe
 from pyddp.effects.chase import Chase
@@ -31,6 +32,15 @@ class EffectInfo(NamedTuple):
     description: str
     static: bool
     params: Mapping[str, ParamSpec]
+    color_param: str | None = None  # the param a single color (e.g. Home Assistant's rgb_color) drives, if any
+
+    def color_params(self, rgb: RGB) -> dict[str, Any]:
+        """Params that put one ``rgb`` color on this effect; empty when the effect has no color to drive."""
+        if self.color_param is None:
+            return {}
+        if self.params[self.color_param].kind == "colors":
+            return {self.color_param: [rgb]}
+        return {self.color_param: rgb}
 
 
 def get_effect(name: str) -> type[Effect]:
@@ -43,7 +53,9 @@ def get_effect(name: str) -> type[Effect]:
 
 def list_effects() -> list[EffectInfo]:
     """Every registered effect, in registry order."""
-    return [EffectInfo(e.name, e.description, e.static, e.params) for e in EFFECTS.values()]
+    return [
+        EffectInfo(e.name, e.description, e.static, e.params, getattr(e, "color_param", None)) for e in EFFECTS.values()
+    ]
 
 
 __all__ = ["EFFECTS", "Effect", "EffectInfo", "ParamSpec", "get_effect", "list_effects", "validate_params"]
