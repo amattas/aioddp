@@ -89,7 +89,7 @@ while True:
 class RunnerStats:
     frames_rendered: int = 0
     frames_dropped: int = 0
-    last_render_seconds: float = 0.0   # wall time of the most recent render call
+    last_render_seconds: float = 0.0  # wall time of the most recent render call
     max_render_seconds: float = 0.0
 ```
 

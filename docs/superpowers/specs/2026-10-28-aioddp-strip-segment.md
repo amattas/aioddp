@@ -18,7 +18,7 @@ class Strip:
     pixel_count: int
     port: int = DDP_PORT
     data_type: DataType = DataType.RGB
-    color_order: str = ""          # empty: the data type's canonical order, RGB or RGBW
+    color_order: str = ""  # empty: the data type's canonical order, RGB or RGBW
     brightness_cap: float = DEFAULT_BRIGHTNESS_CAP
     gamma: float | None = DEFAULT_GAMMA
     destination_id: int = DESTINATION_DEFAULT
@@ -44,10 +44,10 @@ Validation normalizes `color_order` to upper case; because the dataclass is froz
 ### Derived properties
 
 ```python
-channels: int            # data_type.channels
-frame_size: int          # pixel_count * channels, in bytes
-wire_data_type: int      # data_type_byte if set, else data_type.wire_byte
-channel_map: tuple[int, ...]   # for each output channel position, the canonical index to read from
+channels: int  # data_type.channels
+frame_size: int  # pixel_count * channels, in bytes
+wire_data_type: int  # data_type_byte if set, else data_type.wire_byte
+channel_map: tuple[int, ...]  # for each output channel position, the canonical index to read from
 ```
 
 `channel_map` for `"GRB"` is `(1, 0, 2)`: output position 0 reads canonical channel 1 (G). The color pipeline uses it directly.
@@ -93,8 +93,8 @@ A `Segment` does not know its strip, so range checking happens in `Strip.validat
 strip = Strip(host="10.0.40.20", pixel_count=300, color_order="GRB", brightness_cap=0.6)
 roof = Segment("roofline", start=0, length=260)
 peak = Segment("peak", start=260, length=40, reverse=True)
-strip.validate_segment(peak)         # ok
-Segment("bad", start=290, length=20) # ConfigError from validate_segment: ends at 310 > 300
+strip.validate_segment(peak)  # ok
+Segment("bad", start=290, length=20)  # ConfigError from validate_segment: ends at 310 > 300
 ```
 
 ## Tests (`tests/test_strip.py`)

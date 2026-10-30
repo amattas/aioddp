@@ -116,7 +116,7 @@ Python env is the conda env `aioddp` (never base, never venv).
 ```bash
 conda run -n aioddp python -m pytest -q
 conda run -n aioddp ruff check .
-conda run -n aioddp black --check .
+conda run -n aioddp ruff format --check .
 conda run -n aioddp mypy
 conda run -n aioddp python scripts/check_coverage.py
 ```
@@ -140,7 +140,7 @@ Design and per-component specs live in `docs/superpowers/specs/` (start with `20
 
 - `src/aioddp` layout, hatchling, `requires-python >=3.12`, `dependencies = []`
 - Extras: `cli` (click, rich, pyyaml), `dev`
-- black line length 120; ruff `E, F, I, B, UP, SIM, S`; mypy strict; bandit
+- ruff (lint + format) line length 120, rules `E, F, I, B, UP, SIM, S`; mypy strict; bandit
 - Standard `logging`; never log full frames above DEBUG
 - hass-ddp imports only from `aioddp`, never from submodules
 

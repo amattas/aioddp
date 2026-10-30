@@ -30,9 +30,8 @@ dev = [
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
-    "black==26.10.1",
     "mypy==2.3.0",
-    "ruff==0.15.22",
+    "ruff==0.17.2",
     "pre-commit==4.6.0",
     "build==1.5.0",
     "bandit==1.9.4",
@@ -61,10 +60,6 @@ aioddp = "aioddp.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/aioddp"]
-
-[tool.black]
-line-length = 120
-target-version = ["py312"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

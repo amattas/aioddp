@@ -2,7 +2,7 @@
 
 **Asyncio Python library for sending DDP pixel data to LED controllers**
 
-[![CI](https://github.com/amattas/aioddp/actions/workflows/ci.yml/badge.svg)](https://github.com/amattas/aioddp/actions/workflows/ci.yml)
+[![Checks](https://github.com/amattas/aioddp/actions/workflows/checks.yml/badge.svg)](https://github.com/amattas/aioddp/actions/workflows/checks.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 aioddp is a standalone, platform-agnostic library for sending DDP (Distributed Display Protocol) pixel data to LED controllers, with a small deterministic effect library and a bench-test CLI.
@@ -36,6 +36,7 @@ Requires Python 3.12+.
 import asyncio
 from aioddp import DDPSender, EffectRunner, Segment, Strip
 
+
 async def main():
     strip = Strip(host="10.0.40.20", pixel_count=300, brightness_cap=0.6)
     roof = Segment("roofline", start=0, length=260)
@@ -47,6 +48,7 @@ async def main():
         await runner.start()
         await asyncio.sleep(10)
         await runner.stop()
+
 
 asyncio.run(main())
 ```

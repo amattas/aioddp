@@ -178,7 +178,7 @@ Installed via the `[cli]` extra (click, rich, pyyaml), same pattern as pydmp. Op
 - `src/aioddp` layout, hatchling build backend
 - `requires-python = ">=3.12"`, Apache-2.0 license, author Anthony Mattas
 - `dependencies = []`; dev, cli, docs extras with exact pins
-- black (line length 120), ruff (`E, F, I, B, UP, SIM, S`, `S101` ignored in tests), mypy strict pinned to 3.12, bandit, pre-commit
+- ruff lint and format (line length 120, rules `E, F, I, B, UP, SIM, S`, `S101` ignored in tests), mypy strict pinned to 3.12, bandit, pre-commit
 - `.editorconfig`, `.gitignore` copied from pydmp (adds `config.yaml`)
 - `CLAUDE.md` and `AGENTS.md` at the root, same structure as pydmp's
 - Docs: Zensical + mike, published to `https://amattas.github.io/aioddp/`, API reference generated with pydoc-markdown, `scripts/publish_versioned_docs.py` copied from pydmp

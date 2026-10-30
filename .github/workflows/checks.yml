@@ -1,0 +1,50 @@
+# Checks — automatic on push to main; on pull requests the run waits at the
+# `approve` job until a reviewer approves it in the `approval` environment. The
+# Release workflow requires a successful run of this workflow on main HEAD.
+#
+# Required checks (default-branch ruleset): "python / checks (<python>)" and
+# "python / security".
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  approve:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    environment: approval
+    steps:
+      - run: echo "Checks approved by ${GITHUB_TRIGGERING_ACTOR}"
+
+  python:
+    needs: approve
+    if: always() && needs.approve.result != 'failure' && needs.approve.result != 'cancelled'
+    uses: mattas-net/.github/.github/workflows/python-ci.yml@main
+    permissions:
+      contents: read
+    with:
+      python-versions: '["3.12", "3.13", "3.14"]'
+      extra-lint: bandit -q -r src
+      typecheck: python -m mypy src tests scripts
+      test: AIODDP_BENCH_FACTOR=3 python -m pytest -q
+      extra-checks: python scripts/check_coverage.py
+      audit: strict
+
+  codeql:
+    needs: approve
+    if: always() && needs.approve.result != 'failure' && needs.approve.result != 'cancelled'
+    uses: mattas-net/.github/.github/workflows/codeql.yml@main
+    permissions:
+      contents: read
+      security-events: write
