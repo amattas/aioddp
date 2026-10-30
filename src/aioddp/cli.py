@@ -17,7 +17,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from importlib.metadata import version as _dist_version
 from pathlib import Path
-from typing import Any
+from typing import IO, Any
 
 try:
     import click
@@ -98,12 +98,16 @@ class _SendFailure(_Failure):
 
 
 class _UsageError(click.UsageError):
-    """A usage error that exits 1, keeping the original error's message and context."""
+    """Exits 1 but renders exactly as the wrapped usage error (e.g. bare ``aioddp`` prints plain help)."""
 
     exit_code = EXIT_ERROR
 
     def __init__(self, cause: click.UsageError) -> None:
         super().__init__(cause.format_message(), cause.ctx)
+        self.cause = cause
+
+    def show(self, file: IO[Any] | None = None) -> None:
+        self.cause.show(file)
 
 
 class _Group(click.Group):
