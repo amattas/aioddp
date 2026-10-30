@@ -100,6 +100,14 @@ loop:
 
 It reuses the sequence counter and counts in `stats` like any other send. It runs only when the caller has been idle, so an active effect never doubles traffic. It is off by default; the compatibility page records which controllers blank without it. The task is created with a name (`pyddp-keepalive-<host>`) and `close()` always cancels and awaits it so no task outlives the sender.
 
+### release()
+
+```python
+def release(self) -> None
+```
+
+Pauses keepalive resends until the next `send_frame` (and so `fill` or `off`), which resumes them. It is synchronous because it only sets a flag: it sends nothing, does not close the socket, and does not cancel the keepalive task, which keeps ticking and skips while released. Without keepalive, or on a closed sender, it is a harmless no-op. This exists for controllers with built-in effects: DDP data overrides the built-in effect, and the controller falls back to it some time after DDP stops (about 20 s on the Minleon NDB-Pro), so handing the lights back to the controller means no more DDP, keepalive included. `push()` does not resume keepalive; it latches, it is not a frame.
+
 ## Error handling
 
 - `_DDPProtocol.error_received(exc)` logs at WARNING once per distinct `errno` and then at DEBUG, increments `stats.send_errors`. ICMP port-unreachable on a controller that is off shows up here; it must not kill an effect loop

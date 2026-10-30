@@ -6,33 +6,26 @@ Minleon NDB extensions ``p`` (port number), ``rev``, ``proto``, and ``conv``. St
 
 from __future__ import annotations
 
-import asyncio
-import contextlib
-import ipaddress
 import logging
-import math
-import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from pyddp import _http
+from pyddp._http import TRANSPORT_ERRORS, request, request_path, validate_port, validate_timeout
 from pyddp.const import DDP_PORT, DESTINATION_CONFIG, DESTINATION_STATUS, MAX_OFFSET, DataType
-from pyddp.exceptions import ConfigError, DDPQueryError
+from pyddp.exceptions import DDPQueryError
 from pyddp.protocol import decode_json_document
 from pyddp.sender import DDPSender
 from pyddp.strip import Segment, Strip
 
 _LOGGER = logging.getLogger(__name__)
 
-_MAX_HTTP_BODY = 64 * 1024
-_MAX_HTTP_HEAD = 16 * 1024
-_HTTP_CHUNK = 4096
-_PATH = re.compile(r"/[!-~]*")
-_HOSTNAME = re.compile(r"[A-Za-z0-9.-]+")
 # Minleon "conv": input-to-pixel conversion, mapped to the channel count of the INPUT (what the sender sends).
 _CONV_INPUT_CHANNELS = {0: 3, 1: 3, 2: 4, 3: 1, 4: 3, 5: 3, 6: 3, 7: 3, 8: 4, 9: 1, 10: 3, 11: 3, 12: 3, 13: 3, 14: 4}
 _PROTOCOLS = {0: "ddp", 1: "artnet", 2: "e131"}  # Minleon "proto"
 _DATA_TYPES = {data_type.channels: data_type for data_type in DataType}
+_url = _http.url  # kept under its old name for callers and tests
 
 
 @dataclass(frozen=True, slots=True)
@@ -207,95 +200,18 @@ async def query_layout(
     return parse_config(config, host=host, source="ddp", status=status)
 
 
-def _url_host(host: str) -> str:
-    """``host`` as it goes in a URL: a hostname or IPv4 address as is, an IPv6 literal bracketed."""
-    literal = host[1:-1] if host.startswith("[") and host.endswith("]") else host
-    if ":" in literal:
-        try:
-            address = ipaddress.IPv6Address(literal)
-        except ValueError:
-            raise ConfigError(f"host {host!r} is not a valid IPv6 address") from None
-        if address.scope_id is not None:
-            raise ConfigError(f"host {host!r}: IPv6 scope IDs are not supported")
-        return f"[{literal}]"
-    if literal != host or not _HOSTNAME.fullmatch(host):
-        raise ConfigError(f"host {host!r} must be a hostname, IPv4 address, or IPv6 address")
-    return host
-
-
-def _request_path(path: str) -> str:
-    path = "/" + path.lstrip("/")
-    if not _PATH.fullmatch(path):
-        raise ConfigError(f"HTTP path {path!r} must be printable ASCII without spaces")
-    return path
-
-
-def _url(host: str, port: int, path: str) -> str:
-    """``http://HOST:PORT/PATH``; ``host`` must be a hostname, IPv4 address, or IPv6 literal (brackets optional)."""
-    return f"http://{_url_host(host)}:{port}{_request_path(path)}"
-
-
-def _parse_head(head: bytes) -> tuple[int | None, dict[str, str]]:
-    """Status code (``None`` if unparsable) and lower-cased headers of an HTTP response head."""
-    status_line, *lines = head.decode("latin-1").split("\r\n")
-    parts = status_line.split(" ", 2)
-    status = int(parts[1]) if len(parts) >= 2 and parts[1].isdigit() else None
-    headers: dict[str, str] = {}
-    for line in lines:
-        name, sep, value = line.partition(":")
-        if sep:
-            headers[name.strip().lower()] = value.strip()
-    return status, headers
-
-
-async def _http_get(host: str, port: int, path: str, url: str) -> bytes | None:
-    """HTTP/1.0 GET; the body of a 200 response, else ``None``. Redirects are never followed."""
-    url_host = _url_host(host)
-    writer: asyncio.StreamWriter | None = None
-    try:
-        reader, writer = await asyncio.open_connection(url_host.strip("[]"), port, limit=_MAX_HTTP_HEAD)
-        writer.write(f"GET {path} HTTP/1.0\r\nHost: {url_host}:{port}\r\nConnection: close\r\n\r\n".encode())
-        await writer.drain()
-        status, headers = _parse_head(await reader.readuntil(b"\r\n\r\n"))
-        if status != 200:
-            _LOGGER.debug("HTTP %s answered %s", url, status)
-            return None
-        if "chunked" in headers.get("transfer-encoding", "").lower():
-            _LOGGER.debug("HTTP %s uses chunked transfer encoding, which pyddp does not decode", url)
-            return None
-        raw_length = headers.get("content-length", "")
-        length = int(raw_length) if raw_length.isdigit() else None
-        if length is not None and length > _MAX_HTTP_BODY:
-            raise DDPQueryError(f"{url} returned more than {_MAX_HTTP_BODY} bytes")
-        body = bytearray()
-        while len(body) <= _MAX_HTTP_BODY and (length is None or len(body) < length):
-            chunk = await reader.read(_HTTP_CHUNK)
-            if not chunk:
-                break
-            body += chunk
-        if len(body) > _MAX_HTTP_BODY:
-            raise DDPQueryError(f"{url} returned more than {_MAX_HTTP_BODY} bytes")
-        return bytes(body[:length])
-    finally:
-        if writer is not None:
-            writer.close()
-            with contextlib.suppress(OSError):
-                await writer.wait_closed()
-
-
 async def _fetch_document(host: str, port: int, path: str, timeout: float) -> dict[str, Any] | None:
     """The JSON object at ``path``; ``None`` if the request fails or is not a 200; ``DDPQueryError`` if not JSON."""
-    path = _request_path(path)
+    path = request_path(path)
     url = _url(host, port, path)
     try:
-        async with asyncio.timeout(timeout):  # connect, request, head, and body together
-            body = await _http_get(host, port, path, url)
-    except (TimeoutError, OSError, asyncio.IncompleteReadError, asyncio.LimitOverrunError) as exc:
+        response = await request(host, port, path, timeout=timeout)
+    except TRANSPORT_ERRORS as exc:
         _LOGGER.debug("HTTP request to %s failed: %r", url, exc)
         return None
-    if body is None:
+    if response.body is None:
         return None
-    document = decode_json_document(body, what=url)
+    document = decode_json_document(response.body, what=url)
     if document is None:
         raise DDPQueryError(f"{url} returned an empty body")
     return document
@@ -310,10 +226,8 @@ async def fetch_layout_http(
     status_path: str = "/api/status",
 ) -> ControllerLayout | None:
     """Read the layout from the controller's HTTP API; ``None`` if it serves no config there."""
-    if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
-        raise ConfigError(f"port must be 1 to 65535, got {port!r}")
-    if isinstance(timeout, bool) or not isinstance(timeout, int | float) or not math.isfinite(timeout) or timeout <= 0:
-        raise ConfigError(f"timeout must be a positive finite number of seconds, got {timeout!r}")
+    validate_port(port)
+    validate_timeout(timeout)
     config = await _fetch_document(host, port, config_path, timeout)
     if config is None:
         return None

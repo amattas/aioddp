@@ -161,6 +161,22 @@ async def test_keepalive_resends_shadow_only_after_idle(udp_listener: UDPListene
     assert (stats.keepalives_sent, stats.frames_sent, stats.packets_sent) == (1, 6, 7)
 
 
+async def test_release_pauses_keepalive_until_next_frame(udp_listener: UDPListener, make_strip: MakeStrip) -> None:
+    async with DDPSender(make_strip(), keepalive_interval=0.5) as ddp:
+        await ddp.fill(None, (1, 2, 3))
+        ddp.release()  # sends nothing, keeps the socket
+        await asyncio.sleep(1.2)  # two keepalive ticks while released: silent
+        assert len(udp_listener.packets) == 1
+        assert (ddp.is_open, ddp.stats.keepalives_sent) == (True, 0)
+
+        await ddp.off()  # the next frame resumes keepalive
+        packets = await udp_listener.wait_for(3, timeout=1.5)
+        stats = ddp.stats
+
+    assert packets[2][HEADER_SIZE:] == packets[1][HEADER_SIZE:] == bytes(30)
+    assert (stats.keepalives_sent, stats.frames_sent) == (1, 2)
+
+
 @pytest.mark.parametrize("interval", [0.0, 0.49, -1.0])
 def test_keepalive_interval_below_floor_raises_config_error(make_strip: MakeStrip, interval: float) -> None:
     with pytest.raises(ConfigError, match="keepalive_interval"):

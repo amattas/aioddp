@@ -17,9 +17,9 @@ repos:
     rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
-        exclude: ^tests/golden/.*\.bin$
+        exclude: ^tests/(golden/.*\.bin|fixtures/.*)$
       - id: trailing-whitespace
-        exclude: ^tests/golden/.*\.bin$
+        exclude: ^tests/(golden/.*\.bin|fixtures/.*)$
   - repo: https://github.com/PyCQA/bandit
     rev: 1.9.4
     hooks:

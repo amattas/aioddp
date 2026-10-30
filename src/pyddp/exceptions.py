@@ -19,3 +19,7 @@ class DDPQueryError(PyDDPError):
 
 class EffectError(PyDDPError):
     """Unknown effect, bad effect params, or a render failure."""
+
+
+class ControllerError(PyDDPError):
+    """A controller's HTTP control interface could not be reached, timed out, or answered with a non-200 status."""

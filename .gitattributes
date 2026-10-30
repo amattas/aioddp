@@ -1,1 +1,2 @@
 *.bin binary
+tests/fixtures/** -text

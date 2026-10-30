@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 from collections.abc import AsyncIterator, Callable, Iterator
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -27,6 +28,12 @@ NDB_STATUS_JSON = (
     b'{"status":{"man":"3WL","mod":"NDBPRO","push":true,"mac":"5c:01:3b:39:1b:93","ver":"2.0","name":"ndbpro",'
     b'"fuses":"ff","vin":"24.27","amp":"1.51","links":"04"}}'
 )
+
+# Pages captured verbatim from the same NDB-Pro's web UI; the control endpoint's reply body is not recorded.
+NDB_PAGES_DIR = Path(__file__).parent / "fixtures" / "ndbpro"
+NDB_PAGES: dict[str, bytes] = {
+    f"/{name}": (NDB_PAGES_DIR / name).read_bytes() for name in ("pfx2.html", "pcolors.html", "pshows.html")
+}
 
 Responder = Callable[[bytes, tuple[str | Any, int]], list[bytes]]
 
@@ -99,7 +106,10 @@ async def udp_listener() -> AsyncIterator[UDPListener]:
 
 
 class HTTPController:
-    """Loopback HTTP server answering GET for each path in ``routes``; ``None`` or a missing path is a 404.
+    """Loopback HTTP server answering any method for each path in ``routes`` (query string ignored for routing).
+
+    ``None`` or a missing path is a 404. ``requests`` records each request target; ``calls`` records
+    ``(method, target, body)``, with the body read by ``Content-Length``.
 
     Paths in ``redirects`` answer 302 to the given location. ``slow`` maps a path to a misbehaving mode:
     ``"body"`` sends headers, then one body byte every 0.1 s; ``"head"`` sends the whole response one byte every
@@ -111,16 +121,30 @@ class HTTPController:
 
     def __init__(self) -> None:
         self.port: int = 0
-        self.routes: dict[str, bytes | None] = {"/api/config": NDB_CONFIG_JSON, "/api/status": NDB_STATUS_JSON}
+        self.routes: dict[str, bytes | None] = {
+            "/api/config": NDB_CONFIG_JSON,
+            "/api/status": NDB_STATUS_JSON,
+            "/api/control": b"",
+            **NDB_PAGES,
+        }
         self.requests: list[str] = []
+        self.calls: list[tuple[str, str, bytes]] = []
         self.redirects: dict[str, str] = {}
         self.slow: dict[str, str] = {}
 
     async def handle(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         try:
             head = await reader.readuntil(b"\r\n\r\n")
-            path = head.split(b" ", 2)[1].decode()
-            self.requests.append(path)
+            method, target = (part.decode() for part in head.split(b" ", 2)[:2])
+            length = 0
+            for line in head.split(b"\r\n")[1:]:
+                name, _, value = line.partition(b":")
+                if name.strip().lower() == b"content-length":
+                    length = int(value)
+            body_in = await reader.readexactly(length) if length else b""
+            self.requests.append(target)
+            self.calls.append((method, target, body_in))
+            path = target.partition("?")[0]
             if path in self.redirects:
                 writer.write(
                     f"HTTP/1.1 302 Found\r\nLocation: {self.redirects[path]}\r\nContent-Length: 0\r\n"

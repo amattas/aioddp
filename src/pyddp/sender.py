@@ -84,6 +84,7 @@ class DDPSender:
         self._transport: asyncio.DatagramTransport | None = None
         self._protocol: _DDPProtocol | None = None
         self._keepalive_task: asyncio.Task[None] | None = None
+        self._released = False  # release(): keepalive paused until the next frame
         self._seen_errnos: set[int | None] = set()
         self._pending: dict[int, asyncio.Future[bytes]] = {}  # destination -> reply payload
         self._reply_chunks: dict[int, dict[int, bytes]] = {}  # destination -> offset -> data; repeats replace
@@ -182,6 +183,7 @@ class DDPSender:
             destination=strip.destination_id,
         )
         self._send(transport, packets)
+        self._released = False
         self._stats.frames_sent += 1
         self._stats.last_frame = bytes(self._shadow)
 
@@ -194,6 +196,14 @@ class DDPSender:
     async def off(self, segment: Segment | None = None, *, push: bool = True) -> None:
         """Blank ``segment`` (whole strip by default)."""
         await self.fill(segment, _BLACK, brightness=1.0, push=push)
+
+    def release(self) -> None:
+        """Stop keepalive resends until the next ``send_frame``, ``fill``, or ``off``, which resumes them.
+
+        For controllers with built-in effects that take over when DDP data stops (the Minleon NDB-Pro falls back
+        after about 20 s). Sends nothing and leaves the socket open; a no-op without keepalive or when closed.
+        """
+        self._released = True
 
     async def push(self) -> None:
         """Send a header-only latch packet."""
@@ -271,7 +281,7 @@ class DDPSender:
             await asyncio.sleep(interval)
             transport = self._transport
             last_send = self._stats.last_send
-            if transport is None or not self._stats.frames_sent or last_send is None:
+            if transport is None or self._released or not self._stats.frames_sent or last_send is None:
                 continue
             if loop.time() - last_send < interval:
                 continue

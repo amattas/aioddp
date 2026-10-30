@@ -54,6 +54,8 @@ pyddp/
 │   ├── effects/          # base.py (contract, params), registry, one module per effect
 │   ├── runner.py         # EffectRunner, fade()
 │   ├── discovery.py      # ControllerLayout from a DDP JSON config query or the same document over HTTP
+│   ├── ndb.py            # NDBController: Minleon NDB-Pro built-in effects, intensity, preset recall over HTTP
+│   ├── _http.py          # Private minimal asyncio HTTP/1.0 client shared by discovery and ndb
 │   ├── const.py          # Port, header sizes, flag bits, data type codes, defaults
 │   ├── exceptions.py     # PyDDPError hierarchy
 │   └── cli.py            # pyddp command (click + rich), [cli] extra
@@ -67,14 +69,15 @@ pyddp/
 **Core classes**:
 - `Strip(host, pixel_count, port=4048, data_type, color_order, brightness_cap)`: validated config
 - `Segment(name, start, length, reverse=False)`: byte-range view of a strip
-- `DDPSender(strip, keepalive_interval=None)`: `send_frame`, `fill`, `off`, `push`, `close`. No raw-bytes send path
+- `DDPSender(strip, keepalive_interval=None)`: `send_frame`, `fill`, `off`, `push`, `release`, `close`. No raw-bytes send path. `release()` pauses keepalive until the next frame so a controller can fall back to its built-in effect
 - `EffectRunner(sender, segment, effect, fps, params, brightness, seed)`: `start`, `stop`, `update`, `wait`
 - `Effect`: pure `render(length, t, params, seed) -> bytes` of canonical RGB
 - `discover(host) -> ControllerLayout | None`: pixel count and one `OutputInfo` per output from a DDP query (destinations 250/251) or the same JSON over HTTP; `layout.segments()` is one `Segment` per active output. `DDPSender.query(destination)` is the raw read
+- `NDBController(host, port=80, timeout=3.0)`: `state()`, `presets()`, `set_effect(name)`, `set_intensity(percent)`, `recall_preset(slot)` for the NDB-Pro's built-in effects
 
-Exceptions: `PyDDPError` > `ConfigError`, `DDPSendError`, `EffectError`, `DDPQueryError`.
+Exceptions: `PyDDPError` > `ConfigError`, `DDPSendError`, `EffectError`, `DDPQueryError`, `ControllerError`.
 
-Discovery is best effort and the only vendor-aware code: `fetch_layout_http` defaults to the `/api/config` and `/api/status` paths the Minleon NDB-Pro serves, parsing the DDP-spec JSON document. No scraping, no vendor-specific protocol code.
+Vendor-aware code lives in two places only. Discovery is best effort: `fetch_layout_http` defaults to the `/api/config` and `/api/status` paths the Minleon NDB-Pro serves, parsing the DDP-spec JSON document. `ndb.py` is the one vendor-specific module: it drives the NDB-Pro's built-in effects through the endpoints its web UI uses (`POST /api/control`, `GET /pshows.html?r=N`) and reads state from its HTML pages. It never writes saved settings (`saveon`, preset `Set`). Nothing else in pyddp knows a vendor.
 
 ## DDP Protocol Essentials
 

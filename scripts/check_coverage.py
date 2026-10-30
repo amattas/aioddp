@@ -12,6 +12,7 @@ FLOORS: dict[str, float] = {
     "src/pyddp/runner.py": 90.0,
     "src/pyddp/cli.py": 90.0,
     "src/pyddp/discovery.py": 90.0,
+    "src/pyddp/ndb.py": 90.0,
 }
 
 
