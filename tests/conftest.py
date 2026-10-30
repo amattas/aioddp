@@ -113,7 +113,8 @@ class HTTPController:
 
     Paths in ``redirects`` answer 302 to the given location. ``slow`` maps a path to a misbehaving mode:
     ``"body"`` sends headers, then one body byte every 0.1 s; ``"head"`` sends the whole response one byte every
-    0.1 s; both stop when the client hangs up. ``"chunked"`` answers with a chunked transfer encoding, and
+    0.1 s; both stop when the client hangs up. ``"chunked"`` sends the route's body chunked (``"badchunk"``
+    with a malformed size), and
     ``"nolength"`` sends the route's body without a Content-Length header.
     """
 
@@ -168,8 +169,14 @@ class HTTPController:
             elif mode == "nolength":
                 writer.write(b"HTTP/1.0 200 OK\r\n\r\n" + body)
                 await writer.drain()
-            elif mode == "chunked":
-                writer.write(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n2\r\n{}\r\n0\r\n\r\n")
+            elif mode in ("chunked", "badchunk"):
+                # What the NDB-Pro firmware sends: HTTP/1.1, chunked, lower-case hex sizes, even to HTTP/1.0 requests.
+                chunks = b"".join(
+                    b"%x\r\n%s\r\n" % (len(body[i : i + 1000]), body[i : i + 1000]) for i in range(0, len(body), 1000)
+                )
+                if mode == "badchunk":
+                    chunks = b"zz\r\n" + chunks
+                writer.write(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n" + chunks + b"0\r\n\r\n")
                 await writer.drain()
             else:
                 writer.write(response)

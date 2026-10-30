@@ -46,7 +46,7 @@ class NDBController:
 - The constructor validates host (hostname, IPv4, or IPv6 literal, as discovery does), port 1 to 65535, and a positive finite timeout; anything else is `ConfigError`. Nothing is sent until a method is called, and nothing is held open between calls
 - `set_effect` takes a non-empty, non-blank string; the body is `json.dumps` with compact separators, byte for byte what the UI sends. The name is not checked against `state().effects`, so a firmware with other effects still works
 - `set_intensity` takes an `int` 0 to 100 (`bool` rejected), sent as a string. `recall_preset` takes an `int` 0 to 19 (`bool` rejected). Invalid arguments raise `ConfigError` and send nothing
-- Errors: `ControllerError(PyDDPError)` when the controller cannot be reached, the request times out, or it answers anything but 200; the message names the method and URL. `DDPQueryError` when a page is unusable: not UTF-8, chunked, over the size cap, or markup the parser does not recognize
+- Errors: `ControllerError(PyDDPError)` when the controller cannot be reached, the request times out, or it answers anything but 200; the message names the method and URL. `DDPQueryError` when a page is unusable: not UTF-8, malformed chunked framing, over the size cap, or markup the parser does not recognize
 - Logging is DEBUG only
 
 ## Parsing
@@ -59,7 +59,7 @@ Regexes on the documented markup, strict enough that a different page raises ins
 
 ## HTTP client
 
-`_http.py` is the private HTTP/1.0 client, generalized from discovery: GET or POST with a body and `Content-Length`, one `asyncio.timeout` around connect, request, head, body, and close, head capped at 16 KiB, body at 64 KiB, no redirects, chunked encoding not decoded, host validated so it cannot steer path, port, or scheme. Discovery's behavior and tests are unchanged: it still maps any transport failure or non-200 to "no answer".
+`_http.py` is the private HTTP/1.0 client, generalized from discovery: GET or POST with a body and `Content-Length`, one `asyncio.timeout` around connect, request, head, body, and close, head capped at 16 KiB, body at 64 KiB, no redirects, chunked bodies decoded under the same cap (the NDB-Pro answers HTTP/1.0 requests with HTTP/1.1 chunked bodies; measured live), host validated so it cannot steer path, port, or scheme. Discovery's behavior and tests are unchanged: it still maps any transport failure or non-200 to "no answer".
 
 ## Handing the lights back: DDPSender.release()
 

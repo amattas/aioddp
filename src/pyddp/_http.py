@@ -23,6 +23,7 @@ MAX_BODY = 64 * 1024
 MAX_HEAD = 16 * 1024
 _CHUNK = 4096
 _PATH = re.compile(r"/[!-~]*")
+_CHUNK_SIZE = re.compile(rb"[0-9A-Fa-f]{1,8}")
 _HOSTNAME = re.compile(r"[A-Za-z0-9.-]+")
 
 # What a failed exchange raises out of ``request``: no route, refused, reset, timed out, or a truncated/oversized head.
@@ -31,7 +32,7 @@ TRANSPORT_ERRORS = (TimeoutError, OSError, asyncio.IncompleteReadError, asyncio.
 
 @dataclass(frozen=True, slots=True)
 class Response:
-    """Status code (``None`` if unparsable) and body; the body is read only for a 200 without chunked encoding."""
+    """Status code (``None`` if unparsable) and body; the body is read only for a 200 (``None`` otherwise)."""
 
     status: int | None
     body: bytes | None
@@ -110,6 +111,26 @@ async def request(
         return await _exchange(host_part, port, payload, method, full_url)
 
 
+async def _read_chunked(reader: asyncio.StreamReader, full_url: str) -> bytes:
+    """A chunked body, capped at ``MAX_BODY``; trailers are skipped. ``DDPQueryError`` on malformed framing."""
+    received = bytearray()
+    while True:
+        size_text = (await reader.readuntil(b"\r\n"))[:-2].split(b";", 1)[0].strip()
+        if not _CHUNK_SIZE.fullmatch(size_text):
+            raise DDPQueryError(f"{full_url} sent a malformed chunk size {size_text[:20]!r}")
+        size = int(size_text, 16)
+        if size == 0:
+            break
+        if len(received) + size > MAX_BODY:
+            raise DDPQueryError(f"{full_url} returned more than {MAX_BODY} bytes")
+        received += await reader.readexactly(size)
+        if await reader.readexactly(2) != b"\r\n":
+            raise DDPQueryError(f"{full_url} sent a chunk without its closing CRLF")
+    while (await reader.readuntil(b"\r\n")) != b"\r\n":
+        pass  # trailer fields
+    return bytes(received)
+
+
 async def _exchange(host_part: str, port: int, payload: bytes, method: str, full_url: str) -> Response:
     writer: asyncio.StreamWriter | None = None
     try:
@@ -121,8 +142,8 @@ async def _exchange(host_part: str, port: int, payload: bytes, method: str, full
             _LOGGER.debug("HTTP %s %s answered %s", method, full_url, status)
             return Response(status, None)
         if "chunked" in headers.get("transfer-encoding", "").lower():
-            _LOGGER.debug("HTTP %s uses chunked transfer encoding, which pyddp does not decode", full_url)
-            return Response(status, None)
+            # The NDB-Pro answers HTTP/1.0 requests with HTTP/1.1 chunked bodies.
+            return Response(status, await _read_chunked(reader, full_url))
         raw_length = headers.get("content-length", "")
         length = int(raw_length) if raw_length.isdigit() else None
         if length is not None and length > MAX_BODY:

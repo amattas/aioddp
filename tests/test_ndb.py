@@ -45,7 +45,10 @@ def _closed_tcp_port() -> int:
     return port
 
 
-async def test_state_parses_captured_pages(http_controller: HTTPController) -> None:
+@pytest.mark.parametrize("framing", [None, "chunked"], ids=["content-length", "chunked-like-firmware"])
+async def test_state_parses_captured_pages(http_controller: HTTPController, framing: str | None) -> None:
+    if framing is not None:
+        http_controller.slow.update({"/pfx2.html": framing, "/pcolors.html": framing})
     state = await _controller(http_controller).state()
     assert state == NDBState(effect="Glow", intensity=100, effects=PAGE_EFFECTS)
     assert [(method, target) for method, target, _ in http_controller.calls] == [

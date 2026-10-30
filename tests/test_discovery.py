@@ -243,23 +243,33 @@ async def test_fetch_layout_http_rejects_bad_port_or_timeout(port: int, timeout:
         await fetch_layout_http("127.0.0.1", port=port, timeout=timeout)
 
 
-@pytest.mark.parametrize(("body", "expected"), [(NDB_CONFIG_JSON, 122), (b" " * (64 * 1024 + 1), DDPQueryError)])
-async def test_fetch_layout_http_without_content_length_reads_to_eof(
-    http_controller: HTTPController, body: bytes, expected: int | type[Exception]
+@pytest.mark.parametrize(
+    ("mode", "body", "expected"),
+    [
+        ("nolength", NDB_CONFIG_JSON, 122),
+        ("nolength", b" " * (64 * 1024 + 1), "more than"),
+        ("chunked", NDB_CONFIG_JSON, 122),
+        ("chunked", b" " * (64 * 1024 + 1), "more than"),
+        ("badchunk", NDB_CONFIG_JSON, "chunk size"),
+    ],
+    ids=["unframed", "unframed-oversized", "chunked", "chunked-oversized", "chunked-malformed"],
+)
+async def test_fetch_layout_http_reads_unframed_or_chunked_body(
+    http_controller: HTTPController, mode: str, body: bytes, expected: int | str
 ) -> None:
     http_controller.routes["/api/config"] = body
-    http_controller.slow["/api/config"] = "nolength"
+    http_controller.slow["/api/config"] = mode
     if isinstance(expected, int):
         layout = await fetch_layout_http(http_controller.host, port=http_controller.port)
         assert layout is not None
         assert layout.pixel_count == expected
     else:
-        with pytest.raises(expected, match="more than"):
+        with pytest.raises(DDPQueryError, match=expected):
             await fetch_layout_http(http_controller.host, port=http_controller.port)
 
 
-@pytest.mark.parametrize("mode", ["body", "head", "chunked"])
-async def test_fetch_layout_http_slow_or_chunked_config_is_none_within_deadline(
+@pytest.mark.parametrize("mode", ["body", "head"])
+async def test_fetch_layout_http_slow_config_is_none_within_deadline(
     http_controller: HTTPController, mode: str
 ) -> None:
     http_controller.slow["/api/config"] = mode

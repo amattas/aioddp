@@ -111,9 +111,7 @@ class NDBController:
 
     async def _page(self, path: str) -> str:
         url = self._url(path)
-        body = (await self._request("GET", path)).body
-        if body is None:
-            raise DDPQueryError(f"{url} answered with chunked transfer encoding, which pyddp does not decode")
+        body = (await self._request("GET", path)).body or b""  # a 200 always carries a body, possibly empty
         try:
             return body.decode("utf-8")
         except UnicodeDecodeError:
