@@ -5,7 +5,8 @@
 # builds the tag and verifies the wheel version. Publishing runs in the `pypi`
 # environment (required reviewer gate); PyPI trusted publishing must be registered
 # for workflow `release.yml` + environment `pypi`. The built files are attached to
-# the release after a successful publish.
+# the release after a successful publish; the final `docs` job then rebuilds the
+# versioned docs.
 name: Release
 
 on:
@@ -59,3 +60,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.version }}
         run: gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY"
+
+  docs:
+    needs: publish
+    permissions:
+      contents: write # docs.yml: the publish script pushes the gh-pages branch
+    uses: ./.github/workflows/docs.yml
+    with:
+      version: ${{ inputs.version }}

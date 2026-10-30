@@ -90,6 +90,10 @@ if layout:
 
 Effects are pure functions of segment length, time, params, and seed. `twinkle` uses the seed; the others ignore it.
 
+## Documentation
+
+https://amattas.github.io/aioddp/
+
 ## Compatibility
 
 See [docs/compatibility.md](docs/compatibility.md) for tested controllers and how to test yours.
