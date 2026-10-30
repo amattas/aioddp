@@ -1,11 +1,10 @@
-"""Shared fixtures: loopback UDP listener, loopback HTTP controller, strip factory, and the leaked-task check."""
+"""Shared fixtures: loopback UDP listener, strip factory, and the leaked-task check."""
 
 from __future__ import annotations
 
 import asyncio
 import inspect
 from collections.abc import AsyncIterator, Callable, Iterator
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -15,8 +14,8 @@ from pyddp.protocol import DDPHeader
 from pyddp.sender import DDPSender
 from pyddp.strip import Strip
 
-# Captured verbatim from a Minleon NDB-Pro (firmware 2.0) at /api/config and /api/status.
-NDB_CONFIG_JSON = (
+# Config and status documents captured verbatim from a real controller (firmware 2.0).
+CONFIG_JSON = (
     b'{"config":{"ip":"10.0.0.100","nm":"255.255.255.0","gw":"10.0.0.1","wcm":"client","ssid":"SkyDevices",'
     b'"proto":0,"univ":0,"chip":17,"t0h":400,"t1h":800,"tbit":1250,"tres":250,"conv":13,'
     b'"ports":[{"p":0,"ts":0,"l":80,"ss":1,"rev":1},{"p":1,"ts":0,"l":42,"ss":241,"rev":0},'
@@ -24,16 +23,10 @@ NDB_CONFIG_JSON = (
     b'{"p":4,"ts":0,"l":0,"ss":369,"rev":0},{"p":5,"ts":0,"l":0,"ss":370,"rev":0},'
     b'{"p":6,"ts":0,"l":0,"ss":371,"rev":0},{"p":7,"ts":0,"l":0,"ss":372,"rev":0}]}}'
 )
-NDB_STATUS_JSON = (
+STATUS_JSON = (
     b'{"status":{"man":"3WL","mod":"NDBPRO","push":true,"mac":"5c:01:3b:39:1b:93","ver":"2.0","name":"ndbpro",'
     b'"fuses":"ff","vin":"24.27","amp":"1.51","links":"04"}}'
 )
-
-# Pages captured verbatim from the same NDB-Pro's web UI; the control endpoint's reply body is not recorded.
-NDB_PAGES_DIR = Path(__file__).parent / "fixtures" / "ndbpro"
-NDB_PAGES: dict[str, bytes] = {
-    f"/{name}": (NDB_PAGES_DIR / name).read_bytes() for name in ("pfx2.html", "pcolors.html", "pshows.html")
-}
 
 Responder = Callable[[bytes, tuple[str | Any, int]], list[bytes]]
 
@@ -44,10 +37,10 @@ def reply_packet(destination: int, payload: bytes, *, push: bool = True, offset:
     return bytes([flags, 0, 0, destination]) + offset.to_bytes(4, "big") + len(payload).to_bytes(2, "big") + payload
 
 
-def ndb_responder(packet: bytes, addr: tuple[str | Any, int]) -> list[bytes]:
-    """Answer config and status queries with the captured NDB-Pro documents; ignore everything else."""
+def config_responder(packet: bytes, addr: tuple[str | Any, int]) -> list[bytes]:
+    """Answer config and status queries with the captured documents; ignore everything else."""
     header = DDPHeader.decode(packet)
-    documents = {DESTINATION_CONFIG: NDB_CONFIG_JSON, DESTINATION_STATUS: NDB_STATUS_JSON}
+    documents = {DESTINATION_CONFIG: CONFIG_JSON, DESTINATION_STATUS: STATUS_JSON}
     if not header.query or header.destination not in documents:
         return []
     return [reply_packet(header.destination, documents[header.destination])]
@@ -103,113 +96,6 @@ async def udp_listener() -> AsyncIterator[UDPListener]:
         yield listener
     finally:
         transport.close()
-
-
-class HTTPController:
-    """Loopback HTTP server answering any method for each path in ``routes`` (query string ignored for routing).
-
-    ``None`` or a missing path is a 404. ``requests`` records each request target; ``calls`` records
-    ``(method, target, body)``, with the body read by ``Content-Length``.
-
-    Paths in ``redirects`` answer 302 to the given location. ``slow`` maps a path to a misbehaving mode:
-    ``"body"`` sends headers, then one body byte every 0.1 s; ``"head"`` sends the whole response one byte every
-    0.1 s; both stop when the client hangs up. ``"chunked"`` sends the route's body chunked (``"badchunk"``
-    with a malformed size), and
-    ``"nolength"`` sends the route's body without a Content-Length header.
-    """
-
-    host: str = "127.0.0.1"
-
-    def __init__(self) -> None:
-        self.port: int = 0
-        self.routes: dict[str, bytes | None] = {
-            "/api/config": NDB_CONFIG_JSON,
-            "/api/status": NDB_STATUS_JSON,
-            "/api/control": b"",
-            **NDB_PAGES,
-        }
-        self.requests: list[str] = []
-        self.calls: list[tuple[str, str, bytes]] = []
-        self.redirects: dict[str, str] = {}
-        self.slow: dict[str, str] = {}
-
-    async def handle(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        try:
-            head = await reader.readuntil(b"\r\n\r\n")
-            method, target = (part.decode() for part in head.split(b" ", 2)[:2])
-            length = 0
-            for line in head.split(b"\r\n")[1:]:
-                name, _, value = line.partition(b":")
-                if name.strip().lower() == b"content-length":
-                    length = int(value)
-            body_in = await reader.readexactly(length) if length else b""
-            self.requests.append(target)
-            self.calls.append((method, target, body_in))
-            path = target.partition("?")[0]
-            if path in self.redirects:
-                writer.write(
-                    f"HTTP/1.1 302 Found\r\nLocation: {self.redirects[path]}\r\nContent-Length: 0\r\n"
-                    "Connection: close\r\n\r\n".encode()
-                )
-                await writer.drain()
-                return
-            body = self.routes.get(path)
-            status = "200 OK" if body is not None else "404 Not Found"
-            body = body if body is not None else b"not found"
-            response = (
-                f"HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {len(body)}\r\n"
-                "Connection: close\r\n\r\n".encode() + body
-            )
-            mode = self.slow.get(path)
-            if mode == "head":
-                await self._drip(reader, writer, response)
-            elif mode == "body":
-                writer.write(b"HTTP/1.1 200 OK\r\nContent-Length: 1000\r\nConnection: close\r\n\r\n")
-                await self._drip(reader, writer, b" " * 200)
-            elif mode == "nolength":
-                writer.write(b"HTTP/1.0 200 OK\r\n\r\n" + body)
-                await writer.drain()
-            elif mode in ("chunked", "badchunk"):
-                # What the NDB-Pro firmware sends: HTTP/1.1, chunked, lower-case hex sizes, even to HTTP/1.0 requests.
-                chunks = b"".join(
-                    b"%x\r\n%s\r\n" % (len(body[i : i + 1000]), body[i : i + 1000]) for i in range(0, len(body), 1000)
-                )
-                if mode == "badchunk":
-                    chunks = b"zz\r\n" + chunks
-                writer.write(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n" + chunks + b"0\r\n\r\n")
-                await writer.drain()
-            else:
-                writer.write(response)
-                await writer.drain()
-        finally:
-            writer.close()
-            await writer.wait_closed()
-
-    @staticmethod
-    async def _drip(reader: asyncio.StreamReader, writer: asyncio.StreamWriter, data: bytes) -> None:
-        try:
-            for i in range(len(data)):
-                writer.write(data[i : i + 1])
-                await writer.drain()
-                try:
-                    if not await asyncio.wait_for(reader.read(1), 0.1):
-                        return  # client hung up
-                except TimeoutError:
-                    continue
-        except ConnectionError:
-            return
-
-
-@pytest.fixture
-async def http_controller() -> AsyncIterator[HTTPController]:
-    controller = HTTPController()
-    server = await asyncio.start_server(controller.handle, HTTPController.host, 0)
-    controller.port = server.sockets[0].getsockname()[1]
-    try:
-        yield controller
-    finally:
-        server.close()
-        await server.wait_closed()
 
 
 @pytest.fixture

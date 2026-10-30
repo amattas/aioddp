@@ -4,10 +4,9 @@ from importlib.metadata import PackageNotFoundError, version
 
 from pyddp.color import kelvin_to_rgb, parse_color, process_frame
 from pyddp.const import DDP_PORT, DEFAULT_FPS, DEFAULT_GAMMA, MAX_FPS, DataType
-from pyddp.discovery import ControllerLayout, OutputInfo, discover
+from pyddp.discovery import ControllerLayout, OutputInfo, discover, parse_config
 from pyddp.effects import EffectInfo, ParamSpec, get_effect, list_effects, validate_params
-from pyddp.exceptions import ConfigError, ControllerError, DDPQueryError, DDPSendError, EffectError, PyDDPError
-from pyddp.ndb import NDBController, NDBPreset, NDBState
+from pyddp.exceptions import ConfigError, DDPQueryError, DDPSendError, EffectError, PyDDPError
 from pyddp.runner import EffectRunner, RunnerStats, fade
 from pyddp.sender import DDPSender, SenderStats
 from pyddp.strip import Segment, Strip
@@ -30,10 +29,7 @@ __all__ = [
     "ControllerLayout",
     "OutputInfo",
     "discover",
-    # controller built-in effects (Minleon NDB-Pro)
-    "NDBController",
-    "NDBState",
-    "NDBPreset",
+    "parse_config",
     # effects
     "EffectRunner",
     "RunnerStats",
@@ -52,7 +48,6 @@ __all__ = [
     "ConfigError",
     "DDPSendError",
     "DDPQueryError",
-    "ControllerError",
     "EffectError",
     # constants
     "DDP_PORT",

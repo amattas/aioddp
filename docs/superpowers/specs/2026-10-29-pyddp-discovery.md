@@ -7,27 +7,29 @@ Modules: `discovery.py`, plus `DDPSender.query` in `sender.py` and `build_query_
 
 ## Scope
 
-DDP has no handshake, so a sender cannot learn a controller's pixel count or output layout from the data path. The protocol has an optional read side: a packet with the query flag to destination 250 (JSON config) or 251 (JSON status) gets a reply carrying a JSON document. This spec adds that query to the sender, a parser for the config document, and an HTTP fallback for controllers that publish the same document over HTTP instead of answering UDP queries. The result is a `ControllerLayout` that hass-ddp can turn into a `Strip` and one `Segment` per output.
+DDP has no handshake, so a sender cannot learn a controller's pixel count or output layout from the data path. The protocol has an optional read side: a packet with the query flag to destination 250 (JSON config) or 251 (JSON status) gets a reply carrying a JSON document. This spec adds that query to the sender, and a parser for the config document. The result is a `ControllerLayout` that hass-ddp can turn into a `Strip` and one `Segment` per output.
 
 Discovery is best effort. Nothing in the data path depends on it, and a controller that answers nothing is configured by hand exactly as before.
 
+pyddp has no HTTP client and knows no vendor. Some controllers (the Minleon NDB-Pro) publish the same config document over HTTP instead of answering UDP queries; the separate `pyminleon` library fetches it and hands the JSON to `parse_config`, which is public for that reason. Nothing here depends on `pyminleon`.
+
 ## The config document
 
-From the DDP spec ("schema as used in Minleon NDB"):
+From the DDP spec ("schema as used in Minleon NDB", the one place a vendor is named, because the extensions below come from it):
 
 ```json
 {"config": {"ip": "a.b.c.d", "nm": "a.b.c.d", "gw": "a.b.c.d",
             "ports": [{"port": 0, "ts": 0, "l": 80, "ss": 1}, ...]}}
 ```
 
-Per port: `l` is the number of lights (pixels), `ss` the 1-based starting slot (channel) in the controller's flat buffer. Minleon adds `p` as an alias for `port`, `rev` (the controller reverses that output itself), `proto` (0 DDP, 1 Art-Net, 2 E1.31), and `conv`, the input-to-pixel conversion whose input channel count is:
+Per port: `l` is the number of lights (pixels), `ss` the 1-based starting slot (channel) in the controller's flat buffer. Controllers may add `p` as an alias for `port`, `rev` (the controller reverses that output itself), `proto` (0 DDP, 1 Art-Net, 2 E1.31), and `conv`, the input-to-pixel conversion whose input channel count is:
 
 | `conv` | Input channels | `conv` | Input channels |
 |---|---|---|---|
 | 0, 1, 4, 5, 6, 7, 10, 11, 12, 13 | 3 | 2, 8, 14 | 4 |
 | 3, 9 | 1 (white only; pyddp cannot drive it) | | |
 
-Pixel start of an output is `(ss - 1) // channels`. The buffer is one flat buffer across outputs, which answers the design doc's open question for the NDB-Pro: output 2 at slot 241 is pixel 80 when output 1 has 80 three-channel pixels.
+Pixel start of an output is `(ss - 1) // channels`. The buffer is one flat buffer across outputs, for example output 2 at slot 241 is pixel 80 when output 1 has 80 three-channel pixels.
 
 The status document is `{"status": {"man": ..., "mod": ..., "ver": ..., ...}}`; only those three keys are interpreted.
 
@@ -80,7 +82,7 @@ class OutputInfo:
 @dataclass(frozen=True, slots=True)
 class ControllerLayout:
     host: str
-    source: str                     # "ddp" or "http"
+    source: str                     # "ddp" for the UDP query; for parse_config, whatever the caller passes
     pixel_count: int                # max(start + length) over active outputs, else 0
     channels: int                   # channels per input pixel used for slot math
     outputs: tuple[OutputInfo, ...]
@@ -99,13 +101,12 @@ class ControllerLayout:
 
 def parse_config(document, *, host, source, status=None) -> ControllerLayout
 async def query_layout(host, *, port=DDP_PORT, timeout=1.0, bind_host=None) -> ControllerLayout | None
-async def fetch_layout_http(host, *, port=80, timeout=2.0, config_path="/api/config", status_path="/api/status") -> ControllerLayout | None
-async def discover(host, *, port=DDP_PORT, http_port=80, timeout=1.0) -> ControllerLayout | None
+async def discover(host, *, port=DDP_PORT, timeout=1.0) -> ControllerLayout | None
 ```
 
 ### parse_config
 
-Accepts the `{"config": {...}}` wrapper or the inner object, and the same for `status`. `ports` must be a list of mappings with integer `l >= 0` and `ss >= 1` (decimal strings accepted, since the spec's example is loose about types); anything else, a duplicate port index, a `rev` that is not a bool or int, or an output that would end past `MAX_OFFSET` is `DDPQueryError` naming the port. Any document that reaches the parser was decoded by `decode_json_document`, which rejects NaN and Infinity. `channels` comes from `conv` when present and known, else is inferred from the first two active outputs when `ss2 - ss1 == l1 * c` for `c` in 3 or 4, else defaults to 3. `(ss - 1)` must divide by `channels`.
+Accepts the `{"config": {...}}` wrapper or the inner object, and the same for `status`. `ports` must be a list of mappings with integer `l >= 0` and `ss >= 1` (decimal strings accepted, since the spec's example is loose about types); anything else, a duplicate port index, a `rev` that is not a bool or int, or an output that would end past `MAX_OFFSET` is `DDPQueryError` naming the port. A document from the DDP query was decoded by `decode_json_document`, which rejects NaN and Infinity; a caller passing its own document is responsible for decoding it the same way. `channels` comes from `conv` when present and known, else is inferred from the first two active outputs when `ss2 - ss1 == l1 * c` for `c` in 3 or 4, else defaults to 3. `(ss - 1)` must divide by `channels`.
 
 `segments()` returns `Segment(f"output{index + 1}", start, length)` for each active output, named to match the controller's 1-based "Output 1" in its web UI. `reverse` is always `False`: when the controller reverses an output itself, the pixel order in the DDP buffer is already what the controller wants, and reversing again in pyddp would undo it. `reversed_by_controller` carries the fact for display.
 
@@ -113,31 +114,27 @@ Accepts the `{"config": {...}}` wrapper or the inner object, and the same for `s
 
 Opens a throwaway `DDPSender` on `Strip(host, pixel_count=1, port=port)`, queries config, then status as a best-effort second query, closes the sender whether or not anything answered. `None` when config does not answer. `DDPSendError` from opening the socket propagates.
 
-### fetch_layout_http
-
-A minimal HTTP/1.0 GET over `asyncio.open_connection`, so one `asyncio.timeout(timeout)` covers connect, request, headers, and body (a threaded `urllib` call cannot be bounded this way: its socket timeout is per read, which a server dripping one byte at a time defeats). Head capped at 16 KiB, body at 64 KiB, `Content-Length` honored, chunked transfer encoding decoded under the same cap (malformed framing is `DDPQueryError`). Only status 200 is an answer; redirects are never followed because nothing implements them. The host is validated first (hostname characters, IPv4, or an IPv6 literal, bracketed in the URL) and anything else is `ConfigError`, so the host can never steer the path, port, or scheme. Any connection, HTTP, or timeout error on the config request means "this controller has no HTTP config" and returns `None` (logged at DEBUG). A body that is not a JSON object raises `DDPQueryError`. The status request is best effort. The default paths are the ones the Minleon NDB-Pro serves; they are parameters, not constants, so another controller that publishes the DDP JSON over HTTP at a different path still works. This is the one place pyddp knows a vendor convention, and it knows only a URL path and a JSON document that the DDP spec already defines.
-
 ### discover
 
-`query_layout`, then `fetch_layout_http`; the first answer wins.
+`query_layout` with the same arguments minus `bind_host`; the DDP query is the only path.
 
 ## CLI: `pyddp query`
 
 ```
-pyddp --host HOST query [--timeout 1.0] [--http-port 80] [--no-http] [--json]
+pyddp --host HOST query [--timeout 1.0] [--json]
 ```
 
 Needs host and port only; `--count` is what this command exists to find. Human output is the controller identity line (when status answered), one row per active output with pixels, start, and whether the controller reverses it, a count of unused outputs, the total, and a `config.yaml` snippet with `strip` and one segment per active output, ready to paste. A protocol other than DDP or a channel count pyddp cannot drive prints a warning on stderr. `--json` prints one object with host, source, manufacturer, model, firmware, protocol, pixel_count, channels, data_type, outputs, and the raw config and status documents.
 
-No answer from either path exits 2 with a message naming the host and both ports. A malformed answer exits 1 through the normal `PyDDPError` mapping.
+No answer exits 2 with a message naming the host and the DDP port. A malformed answer exits 1 through the normal `PyDDPError` mapping.
 
 ## Tests
 
 - `test_protocol.py`: query packet goldens; `decode` reports query and reply flags
 - `test_sender.py`: `query` against the `udp_listener` fixture, which gains an optional `responder` hook that sends datagrams back to the sender. Cases: full reply, two-packet reply, timeout, empty reply, malformed JSON, not open, concurrent same destination, stray non-reply datagram ignored, close while pending
-- `test_discovery.py`: `parse_config` on the captured NDB-Pro document and on the spec-format document; conversion table cases; malformed documents parametrized; `query_layout` through the responder; `fetch_layout_http` against a loopback HTTP server fixture, and against a closed port; `discover` falling back to HTTP
-- `test_cli.py`: `query` with host only, `--json`, `--no-http` with no answer, HTTP fallback
+- `test_discovery.py`: `parse_config` on the captured NDB-Pro document and on the spec-format document; conversion table cases; malformed documents parametrized; `query_layout` through the responder; `discover` as the DDP query alone
+- `test_cli.py`: `query` with host only, `--json`, unusable-layout warnings, no answer exits 2
 
 ## Compatibility notes
 
-The Minleon NDB-Pro (firmware 2.0) does not answer UDP queries to 250 or 251, from either an ephemeral source port or port 4048, but serves both documents at `/api/config` and `/api/status` over HTTP. Its status document reports `"push": true`. Both facts are recorded in `docs/compatibility.md`.
+The Minleon NDB-Pro (firmware 2.0) does not answer UDP queries to 250 or 251, from either an ephemeral source port or port 4048, so `pyddp query` gets no answer from it; its HTTP-served documents are read by `pyminleon`. Its status document reports `"push": true`. Both facts are recorded in `docs/compatibility.md`.

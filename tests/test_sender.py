@@ -17,7 +17,7 @@ from pyddp.exceptions import ConfigError, DDPQueryError, DDPSendError
 from pyddp.protocol import DDPHeader
 from pyddp.sender import DDPSender
 from pyddp.strip import Segment, Strip
-from tests.conftest import NDB_CONFIG_JSON, NDB_STATUS_JSON, UDPListener, ndb_responder, reply_packet
+from tests.conftest import CONFIG_JSON, STATUS_JSON, UDPListener, config_responder, reply_packet
 
 MakeStrip = Callable[..., Strip]
 
@@ -353,13 +353,13 @@ QUERY_CONFIG_PACKET = bytes.fromhex("42 01 00 FA 00000000 0000".replace(" ", "")
 
 @pytest.mark.parametrize(
     ("destination", "document"),
-    [(DESTINATION_CONFIG, NDB_CONFIG_JSON), (DESTINATION_STATUS, NDB_STATUS_JSON)],
+    [(DESTINATION_CONFIG, CONFIG_JSON), (DESTINATION_STATUS, STATUS_JSON)],
     ids=["config", "status"],
 )
 async def test_query_returns_reply_document_and_counts_it(
     udp_listener: UDPListener, sender: DDPSender, destination: int, document: bytes
 ) -> None:
-    udp_listener.responder = ndb_responder
+    udp_listener.responder = config_responder
     assert await sender.query(destination) == json.loads(document)
     (packet,) = udp_listener.packets
     assert packet == bytes([0x42, 0x01, 0x00, destination]) + bytes(6)
@@ -369,26 +369,26 @@ async def test_query_returns_reply_document_and_counts_it(
 async def test_query_assembles_multi_packet_reply_by_offset_and_ignores_strays(
     udp_listener: UDPListener, sender: DDPSender
 ) -> None:
-    third = len(NDB_CONFIG_JSON) // 3
-    chunks = [NDB_CONFIG_JSON[i * third : (i + 1) * third if i < 2 else None] for i in range(3)]
+    third = len(CONFIG_JSON) // 3
+    chunks = [CONFIG_JSON[i * third : (i + 1) * third if i < 2 else None] for i in range(3)]
     stray_data = _header(flags=0x41, seq=1, data_type=0x0B, offset=0, length=3, dest=DESTINATION_CONFIG) + b"abc"
     udp_listener.responder = lambda packet, addr: [
         b"\x44",  # shorter than a header
         stray_data,  # no REPLY flag
-        reply_packet(DESTINATION_STATUS, NDB_STATUS_JSON),  # no query pending for this destination
+        reply_packet(DESTINATION_STATUS, STATUS_JSON),  # no query pending for this destination
         reply_packet(DESTINATION_CONFIG, chunks[1], push=False, offset=third),  # arrives before offset 0
         reply_packet(DESTINATION_CONFIG, chunks[0], push=False),
         reply_packet(DESTINATION_CONFIG, chunks[1], push=False, offset=third),  # duplicate
         reply_packet(DESTINATION_CONFIG, chunks[2] + b"\x00\x00", offset=2 * third),
     ]
-    assert await sender.query() == json.loads(NDB_CONFIG_JSON)
+    assert await sender.query() == json.loads(CONFIG_JSON)
     assert sender.stats.replies_received == 1
 
 
 async def test_query_reply_with_gap_raises_query_error(udp_listener: UDPListener, sender: DDPSender) -> None:
     udp_listener.responder = lambda packet, addr: [
-        reply_packet(DESTINATION_CONFIG, NDB_CONFIG_JSON[:100], push=False),
-        reply_packet(DESTINATION_CONFIG, NDB_CONFIG_JSON[200:], offset=200),  # push before offset 100 arrives
+        reply_packet(DESTINATION_CONFIG, CONFIG_JSON[:100], push=False),
+        reply_packet(DESTINATION_CONFIG, CONFIG_JSON[200:], offset=200),  # push before offset 100 arrives
     ]
     with pytest.raises(DDPQueryError, match="destination 250 is incomplete: missing bytes at offset 100"):
         await sender.query()
@@ -400,8 +400,8 @@ async def test_query_without_answer_times_out_to_none_then_works_again(
 ) -> None:
     assert await sender.query(timeout=0.05) is None
     assert sender._pending == {}
-    udp_listener.responder = ndb_responder
-    assert await sender.query() == json.loads(NDB_CONFIG_JSON)
+    udp_listener.responder = config_responder
+    assert await sender.query() == json.loads(CONFIG_JSON)
     assert [DDPHeader.decode(p).sequence for p in udp_listener.packets] == [1, 2]
     assert udp_listener.packets[0] == QUERY_CONFIG_PACKET
 
@@ -432,13 +432,15 @@ async def test_query_rejects_bad_timeout(sender: DDPSender, timeout: float) -> N
 async def test_concurrent_query_same_destination_raises_other_destination_ok(
     udp_listener: UDPListener, sender: DDPSender
 ) -> None:
-    udp_listener.responder = lambda packet, addr: ndb_responder(packet, addr) if packet[3] == DESTINATION_STATUS else []
+    udp_listener.responder = lambda packet, addr: (
+        config_responder(packet, addr) if packet[3] == DESTINATION_STATUS else []
+    )
     first = asyncio.create_task(sender.query(timeout=0.2))
     await asyncio.sleep(0)
     with pytest.raises(RuntimeError, match="250"):
         await sender.query(timeout=0.2)
     status = await sender.query(DESTINATION_STATUS, timeout=0.2)
-    assert status == json.loads(NDB_STATUS_JSON)
+    assert status == json.loads(STATUS_JSON)
     assert await first is None
 
 

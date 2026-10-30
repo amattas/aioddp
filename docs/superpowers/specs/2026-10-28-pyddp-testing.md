@@ -29,7 +29,7 @@ class UDPListener:
     def clear(self) -> None
 ```
 
-An asyncio `DatagramProtocol` bound on loopback. Every sender and CLI test points a `Strip` at `listener.host`/`listener.port`, so tests assert real bytes on a real socket with no mocking of asyncio. An optional `responder` callable (`(data, addr) -> list[bytes]`) sends datagrams back to the sender, which is how query replies are tested. A companion `http_server` fixture (`asyncio.start_server` on loopback answering `GET /api/config` and `/api/status` with captured NDB-Pro documents) covers the HTTP fallback. `wait_for` polls on a short sleep rather than using a condition so the loop keeps running the sender's tasks. Loopback never drops datagrams at this volume; if a test sees fewer packets than expected it is a real bug, not flakiness.
+An asyncio `DatagramProtocol` bound on loopback. Every sender and CLI test points a `Strip` at `listener.host`/`listener.port`, so tests assert real bytes on a real socket with no mocking of asyncio. An optional `responder` callable (`(data, addr) -> list[bytes]`) sends datagrams back to the sender, which is how query replies are tested. The captured config and status documents (`CONFIG_JSON`, `STATUS_JSON`) and `config_responder` serve query replies. `wait_for` polls on a short sleep rather than using a condition so the loop keeps running the sender's tasks. Loopback never drops datagrams at this volume; if a test sees fewer packets than expected it is a real bug, not flakiness.
 
 ### strip and sender factories
 
@@ -65,7 +65,7 @@ For each effect: 5 warm-up renders then 50 timed renders at 500 pixels, default 
 | `test_sender.py` | Wire bytes, segments, expansion, latch, keepalive, close, errors |
 | `test_effects.py` | Contract tests parametrized over the registry, goldens, params, budget |
 | `test_runner.py` | Lifecycle, update, errors, drop handling, fade |
-| `test_discovery.py` | `parse_config` on captured and spec-format documents, conversion table, malformed documents, `query_layout`, `fetch_layout_http`, `discover` fallback |
+| `test_discovery.py` | `parse_config` on captured and spec-format documents, conversion table, malformed documents, `query_layout`, `discover` |
 | `test_cli.py` | Commands via `CliRunner` against the listener |
 
 Parametrize over variations; one test per distinct behavior. The sender, runner, and CLI tests assert what is on the wire and never inspect private attributes except the shadow buffer through `stats.last_frame`.
@@ -98,7 +98,7 @@ __all__ = [
 
 Not automated. Run before 0.1.0 and record the answers in `docs/compatibility.md`:
 
-1. `pyddp query` against the NDB-Pro: does it answer a DDP query, an HTTP config fetch, or neither? (Answered: HTTP only; the layout it reports is in `docs/compatibility.md`)
+1. `pyddp query` against the NDB-Pro: does it answer a DDP query? (Answered: no; it serves its layout over HTTP, read by `pyminleon`; see `docs/compatibility.md`)
 1. `pyddp test` against the NDB-Pro: confirms count and color order
 2. `pyddp fill --data-type-byte 1` then `--data-type-byte 0`: does the controller care about the byte?
 3. `pyddp fill --segment 500:10` on a controller with 8 outputs of fewer than 500 pixels: flat buffer or per-output?

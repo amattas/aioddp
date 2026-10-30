@@ -30,7 +30,7 @@ except ImportError as err:  # pragma: no cover - exercised only without the extr
 
 from pyddp.color import Color, kelvin_to_rgb, parse_color, solid_pixels
 from pyddp.const import DDP_PORT, DEFAULT_FPS, DEFAULT_GAMMA, DataType
-from pyddp.discovery import ControllerLayout, fetch_layout_http, query_layout
+from pyddp.discovery import ControllerLayout, query_layout
 from pyddp.effects import Effect, ParamSpec, get_effect, list_effects
 from pyddp.exceptions import ConfigError, DDPSendError, EffectError, PyDDPError
 from pyddp.runner import EffectRunner
@@ -654,27 +654,18 @@ def _layout_text(layout: ControllerLayout) -> str:
 @click.option(
     "--timeout", type=click.FloatRange(min=0, min_open=True), default=1.0, show_default=True, help="DDP query wait."
 )
-@click.option("--http-port", type=click.IntRange(1, 0xFFFF), default=80, show_default=True)
-@click.option("--no-http", is_flag=True, help="Skip the HTTP /api/config fallback.")
 @_json_option
 @click.pass_context
-def query(ctx: click.Context, timeout: float, http_port: int, no_http: bool, as_json: bool) -> None:
-    """Ask the controller for its output layout (DDP query, then HTTP) and print a config snippet. Needs no --count."""
+def query(ctx: click.Context, timeout: float, as_json: bool) -> None:
+    """Ask the controller for its output layout (DDP query) and print a config snippet. Needs no --count."""
     with _reported_errors(ctx):
         values = _merged_values(ctx)
         host: str = values["host"]
         port: int = values.get("port", DDP_PORT)
 
-        async def run() -> ControllerLayout | None:
-            layout = await query_layout(host, port=port, timeout=timeout)
-            if layout is None and not no_http:
-                layout = await fetch_layout_http(host, port=http_port)
-            return layout
-
-        layout = asyncio.run(run())
+        layout = asyncio.run(query_layout(host, port=port, timeout=timeout))
     if layout is None:
-        tried = "" if no_http else f" or an HTTP config request on port {http_port}"
-        raise _Failure(f"{host} did not answer a DDP query on port {port}{tried}", EXIT_SEND_ERROR)
+        raise _Failure(f"{host} did not answer a DDP query on port {port}", EXIT_SEND_ERROR)
     if layout.protocol not in (None, "ddp"):
         click.echo(f"warning: controller protocol is {layout.protocol}; set it to DDP", err=True)
     if layout.data_type is None:

@@ -62,7 +62,7 @@ pyddp --host 10.0.40.20 --count 300 off
 pyddp effects                                           # list effects and params
 ```
 
-Run `pyddp query` first against new hardware, then `pyddp test`. `query` uses the DDP JSON config query and falls back to the same document over HTTP, which is what the Minleon NDB-Pro serves; a controller that answers neither is configured by hand. Host and count can also come from `config.yaml`; see `docs/superpowers/specs/2026-10-28-pyddp-cli.md`.
+Run `pyddp query` first against new hardware, then `pyddp test`. `query` uses the DDP JSON config query; a controller that does not answer it is configured by hand. Controllers that serve their layout over HTTP (the Minleon NDB-Pro) are read by the separate `pyminleon` library, which can pass the document to `pyddp.parse_config`. Host and count can also come from `config.yaml`; see `docs/superpowers/specs/2026-10-28-pyddp-cli.md`.
 
 ```python
 from pyddp import discover

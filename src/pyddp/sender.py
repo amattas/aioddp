@@ -200,8 +200,8 @@ class DDPSender:
     def release(self) -> None:
         """Stop keepalive resends until the next ``send_frame``, ``fill``, or ``off``, which resumes them.
 
-        For controllers with built-in effects that take over when DDP data stops (the Minleon NDB-Pro falls back
-        after about 20 s). Sends nothing and leaves the socket open; a no-op without keepalive or when closed.
+        For controllers with built-in effects that take over after a timeout when DDP data stops.
+        Sends nothing and leaves the socket open; a no-op without keepalive or when closed.
         """
         self._released = True
 

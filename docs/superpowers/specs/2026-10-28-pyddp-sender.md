@@ -106,7 +106,7 @@ It reuses the sequence counter and counts in `stats` like any other send. It run
 def release(self) -> None
 ```
 
-Pauses keepalive resends until the next `send_frame` (and so `fill` or `off`), which resumes them. It is synchronous because it only sets a flag: it sends nothing, does not close the socket, and does not cancel the keepalive task, which keeps ticking and skips while released. Without keepalive, or on a closed sender, it is a harmless no-op. This exists for controllers with built-in effects: DDP data overrides the built-in effect, and the controller falls back to it some time after DDP stops (about 20 s on the Minleon NDB-Pro), so handing the lights back to the controller means no more DDP, keepalive included. `push()` does not resume keepalive; it latches, it is not a frame.
+Pauses keepalive resends until the next `send_frame` (and so `fill` or `off`), which resumes them. It is synchronous because it only sets a flag: it sends nothing, does not close the socket, and does not cancel the keepalive task, which keeps ticking and skips while released. Without keepalive, or on a closed sender, it is a harmless no-op. This exists for controllers with built-in effects: DDP data overrides the built-in effect, and the controller falls back to it some time after DDP stops (about 20 s on the controller recorded in `docs/compatibility.md`), so handing the lights back to the controller means no more DDP, keepalive included. `push()` does not resume keepalive; it latches, it is not a frame.
 
 ## Error handling
 

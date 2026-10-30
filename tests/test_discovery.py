@@ -1,47 +1,23 @@
-"""Discovery: config parsing, DDP query layout, HTTP fallback."""
+"""Discovery: config parsing and DDP query layout."""
 
 from __future__ import annotations
 
-import asyncio
 import json
-import socket
 from typing import Any
 
 import pytest
 
 from pyddp.const import DESTINATION_STATUS, MAX_OFFSET, DataType
-from pyddp.discovery import (
-    ControllerLayout,
-    OutputInfo,
-    _url,
-    discover,
-    fetch_layout_http,
-    parse_config,
-    query_layout,
-)
-from pyddp.exceptions import ConfigError, DDPQueryError
+from pyddp.discovery import ControllerLayout, OutputInfo, discover, parse_config, query_layout
+from pyddp.exceptions import DDPQueryError
 from pyddp.strip import Segment
-from tests.conftest import (
-    NDB_CONFIG_JSON,
-    NDB_STATUS_JSON,
-    HTTPController,
-    UDPListener,
-    ndb_responder,
-    reply_packet,
-)
+from tests.conftest import CONFIG_JSON, STATUS_JSON, UDPListener, config_responder, reply_packet
 
-NDB_CONFIG: dict[str, Any] = json.loads(NDB_CONFIG_JSON)
-NDB_STATUS: dict[str, Any] = json.loads(NDB_STATUS_JSON)
+CONFIG: dict[str, Any] = json.loads(CONFIG_JSON)
+STATUS: dict[str, Any] = json.loads(STATUS_JSON)
 
 
-def _closed_tcp_port() -> int:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
-        probe.bind(("127.0.0.1", 0))
-        port: int = probe.getsockname()[1]
-    return port
-
-
-def _assert_ndb_layout(layout: ControllerLayout, *, source: str) -> None:
+def _assert_layout(layout: ControllerLayout, *, source: str) -> None:
     assert (layout.host, layout.source) == ("127.0.0.1", source)
     assert (layout.pixel_count, layout.channels, layout.protocol, layout.data_type) == (122, 3, "ddp", DataType.RGB)
     assert layout.active_outputs == (OutputInfo(0, 0, 80, True), OutputInfo(1, 80, 42, False))
@@ -49,16 +25,16 @@ def _assert_ndb_layout(layout: ControllerLayout, *, source: str) -> None:
     assert all(o.length == 0 for o in layout.outputs[2:])
     assert layout.segments() == [Segment("output1", 0, 80), Segment("output2", 80, 42)]
     assert all(not s.reverse for s in layout.segments())
-    assert layout.config == NDB_CONFIG["config"]
+    assert layout.config == CONFIG["config"]
     assert (layout.manufacturer, layout.model, layout.firmware) == ("3WL", "NDBPRO", "2.0")
-    assert layout.status == NDB_STATUS["status"]
+    assert layout.status == STATUS["status"]
 
 
 @pytest.mark.parametrize("wrapped", [True, False], ids=["wrapped", "inner"])
-def test_parse_ndb_pro_config(wrapped: bool) -> None:
-    config = NDB_CONFIG if wrapped else NDB_CONFIG["config"]
-    status = NDB_STATUS if wrapped else NDB_STATUS["status"]
-    _assert_ndb_layout(parse_config(config, host="127.0.0.1", source="http", status=status), source="http")
+def test_parse_captured_config(wrapped: bool) -> None:
+    config = CONFIG if wrapped else CONFIG["config"]
+    status = STATUS if wrapped else STATUS["status"]
+    _assert_layout(parse_config(config, host="127.0.0.1", source="http", status=status), source="http")
 
 
 def _ports(*specs: tuple[int, int], key: str = "port") -> list[dict[str, Any]]:
@@ -151,17 +127,17 @@ def test_parse_config_rejects_malformed(document: Any, status: Any, message: str
 
 
 async def test_query_layout_over_ddp(udp_listener: UDPListener) -> None:
-    udp_listener.responder = ndb_responder
+    udp_listener.responder = config_responder
     layout = await query_layout(udp_listener.host, port=udp_listener.port)
     assert layout is not None
-    _assert_ndb_layout(layout, source="ddp")
+    _assert_layout(layout, source="ddp")
 
 
 async def test_query_layout_tolerates_unusable_status(udp_listener: UDPListener) -> None:
     def responder(packet: bytes, addr: tuple[str | Any, int]) -> list[bytes]:
         if packet[3] == DESTINATION_STATUS:
             return [reply_packet(DESTINATION_STATUS, b"{bad")]
-        return ndb_responder(packet, addr)
+        return config_responder(packet, addr)
 
     udp_listener.responder = responder
     layout = await query_layout(udp_listener.host, port=udp_listener.port, timeout=0.2)
@@ -169,152 +145,13 @@ async def test_query_layout_tolerates_unusable_status(udp_listener: UDPListener)
     assert (layout.pixel_count, layout.status) == (122, None)
 
 
-async def test_fetch_layout_http(http_controller: HTTPController) -> None:
-    layout = await fetch_layout_http(http_controller.host, port=http_controller.port)
-    assert layout is not None
-    _assert_ndb_layout(layout, source="http")
-    assert http_controller.requests == ["/api/config", "/api/status"]
-
-
-@pytest.mark.parametrize(
-    ("routes", "expected"),
-    [
-        ({"/api/config": None}, None),
-        ({"/api/status": None}, "no-status"),
-        ({"/api/status": b"<html>"}, "no-status"),
-        ({"/api/config": b"<html>"}, DDPQueryError),
-        ({"/api/config": b"   "}, DDPQueryError),
-        ({"/api/config": b" " * (64 * 1024 + 1)}, DDPQueryError),
-    ],
-    ids=["config-404", "status-404", "status-not-json", "config-not-json", "config-empty", "config-too-large"],
-)
-async def test_fetch_layout_http_failures(
-    http_controller: HTTPController, routes: dict[str, bytes | None], expected: str | type[Exception] | None
-) -> None:
-    http_controller.routes.update(routes)
-    if isinstance(expected, type):
-        with pytest.raises(expected, match="/api/config"):
-            await fetch_layout_http(http_controller.host, port=http_controller.port)
-        return
-    layout = await fetch_layout_http(http_controller.host, port=http_controller.port)
-    if expected is None:
+@pytest.mark.parametrize("answers", [True, False], ids=["answered", "silent"])
+async def test_discover_is_the_ddp_query(udp_listener: UDPListener, answers: bool) -> None:
+    if answers:
+        udp_listener.responder = config_responder
+    layout = await discover(udp_listener.host, port=udp_listener.port, timeout=0.1)
+    if answers:
+        assert layout is not None
+        _assert_layout(layout, source="ddp")
+    else:
         assert layout is None
-    else:
-        assert layout is not None
-        assert (layout.pixel_count, layout.status, layout.model) == (122, None, None)
-
-
-@pytest.mark.parametrize(
-    ("host", "path", "url"),
-    [
-        ("10.0.0.5", "/api/config", "http://10.0.0.5:80/api/config"),
-        ("fe80::1", "api/status", "http://[fe80::1]:80/api/status"),
-        ("[::1]", "/api/config", "http://[::1]:80/api/config"),
-        ("::1", "/api/config", "http://[::1]:80/api/config"),
-        ("ndb-pro.local", "/api/config", "http://ndb-pro.local:80/api/config"),
-    ],
-)
-def test_http_url_brackets_ipv6(host: str, path: str, url: str) -> None:
-    assert _url(host, 80, path) == url
-
-
-@pytest.mark.parametrize(
-    ("host", "config_path"),
-    [
-        *(
-            (host, "/api/config")
-            for host in ("[zz", "127.0.0.1:99999/x?", "a\r\nb", "a@127.0.0.1", "127.0.0.1/x#", "", "[1.2.3.4]")
-        ),
-        ("fe80::1%en0", "/api/config"),
-        ("127.0.0.1", "/api/config HTTP/1.0\r\nX-Injected: 1"),
-    ],
-)
-async def test_fetch_layout_http_rejects_malformed_host_or_path(host: str, config_path: str) -> None:
-    with pytest.raises(ConfigError, match="host|path"):
-        await fetch_layout_http(host, config_path=config_path)
-
-
-@pytest.mark.parametrize(
-    ("port", "timeout"),
-    [(0, 1.0), (-1, 1.0), (99999, 1.0), (80, 0), (80, -1.0), (80, float("nan")), (80, float("inf")), (80, True)],
-)
-async def test_fetch_layout_http_rejects_bad_port_or_timeout(port: int, timeout: float) -> None:
-    with pytest.raises(ConfigError, match="port|timeout"):
-        await fetch_layout_http("127.0.0.1", port=port, timeout=timeout)
-
-
-@pytest.mark.parametrize(
-    ("mode", "body", "expected"),
-    [
-        ("nolength", NDB_CONFIG_JSON, 122),
-        ("nolength", b" " * (64 * 1024 + 1), "more than"),
-        ("chunked", NDB_CONFIG_JSON, 122),
-        ("chunked", b" " * (64 * 1024 + 1), "more than"),
-        ("badchunk", NDB_CONFIG_JSON, "chunk size"),
-    ],
-    ids=["unframed", "unframed-oversized", "chunked", "chunked-oversized", "chunked-malformed"],
-)
-async def test_fetch_layout_http_reads_unframed_or_chunked_body(
-    http_controller: HTTPController, mode: str, body: bytes, expected: int | str
-) -> None:
-    http_controller.routes["/api/config"] = body
-    http_controller.slow["/api/config"] = mode
-    if isinstance(expected, int):
-        layout = await fetch_layout_http(http_controller.host, port=http_controller.port)
-        assert layout is not None
-        assert layout.pixel_count == expected
-    else:
-        with pytest.raises(DDPQueryError, match=expected):
-            await fetch_layout_http(http_controller.host, port=http_controller.port)
-
-
-@pytest.mark.parametrize("mode", ["body", "head"])
-async def test_fetch_layout_http_slow_config_is_none_within_deadline(
-    http_controller: HTTPController, mode: str
-) -> None:
-    http_controller.slow["/api/config"] = mode
-    loop = asyncio.get_running_loop()
-    started = loop.time()
-    assert await fetch_layout_http(http_controller.host, port=http_controller.port, timeout=0.3) is None
-    assert loop.time() - started < 1.0
-
-
-async def test_fetch_layout_http_refuses_redirects(http_controller: HTTPController) -> None:
-    connections: list[int] = []
-
-    async def count(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        connections.append(1)
-        writer.close()
-        await writer.wait_closed()
-
-    other = await asyncio.start_server(count, "127.0.0.1", 0)
-    try:
-        other_port = other.sockets[0].getsockname()[1]
-        http_controller.redirects["/api/config"] = f"http://127.0.0.1:{other_port}/api/config"
-        assert await fetch_layout_http(http_controller.host, port=http_controller.port) is None
-    finally:
-        other.close()
-        await other.wait_closed()
-    assert connections == []
-
-
-async def test_fetch_layout_http_closed_port_returns_none() -> None:
-    dead_port = _closed_tcp_port()
-    assert await fetch_layout_http("127.0.0.1", port=dead_port, timeout=0.5) is None
-
-
-@pytest.mark.parametrize("udp_answers", [True, False], ids=["ddp", "http-fallback"])
-async def test_discover_prefers_ddp_then_falls_back_to_http(
-    udp_listener: UDPListener, http_controller: HTTPController, udp_answers: bool
-) -> None:
-    if udp_answers:
-        udp_listener.responder = ndb_responder
-    layout = await discover(udp_listener.host, port=udp_listener.port, http_port=http_controller.port, timeout=0.1)
-    assert layout is not None
-    assert layout.source == ("ddp" if udp_answers else "http")
-    assert http_controller.requests == ([] if udp_answers else ["/api/config", "/api/status"])
-
-
-async def test_discover_returns_none_when_nothing_answers(udp_listener: UDPListener) -> None:
-    dead_port = _closed_tcp_port()
-    assert await discover(udp_listener.host, port=udp_listener.port, http_port=dead_port, timeout=0.05) is None

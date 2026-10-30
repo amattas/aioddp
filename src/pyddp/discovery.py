@@ -1,7 +1,8 @@
-"""Read a controller's output layout: DDP JSON query first, then the HTTP API some controllers serve instead.
+"""Read a controller's output layout from the DDP JSON config query, or parse a config document fetched elsewhere.
 
 The config document follows the DDP spec (``{"config": {"ports": [{"port", "ts", "l", "ss"}, ...]}}``) plus the
-Minleon NDB extensions ``p`` (port number), ``rev``, ``proto``, and ``conv``. Stdlib only.
+optional extensions ``p`` (port number), ``rev``, ``proto``, and ``conv``. ``parse_config`` also accepts a document
+the caller fetched by other means, such as a controller's HTTP API. Stdlib only.
 """
 
 from __future__ import annotations
@@ -11,21 +12,17 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from pyddp import _http
-from pyddp._http import TRANSPORT_ERRORS, request, request_path, validate_port, validate_timeout
 from pyddp.const import DDP_PORT, DESTINATION_CONFIG, DESTINATION_STATUS, MAX_OFFSET, DataType
 from pyddp.exceptions import DDPQueryError
-from pyddp.protocol import decode_json_document
 from pyddp.sender import DDPSender
 from pyddp.strip import Segment, Strip
 
 _LOGGER = logging.getLogger(__name__)
 
-# Minleon "conv": input-to-pixel conversion, mapped to the channel count of the INPUT (what the sender sends).
+# "conv": input-to-pixel conversion, mapped to the channel count of the INPUT (what the sender sends).
 _CONV_INPUT_CHANNELS = {0: 3, 1: 3, 2: 4, 3: 1, 4: 3, 5: 3, 6: 3, 7: 3, 8: 4, 9: 1, 10: 3, 11: 3, 12: 3, 13: 3, 14: 4}
-_PROTOCOLS = {0: "ddp", 1: "artnet", 2: "e131"}  # Minleon "proto"
+_PROTOCOLS = {0: "ddp", 1: "artnet", 2: "e131"}  # "proto"
 _DATA_TYPES = {data_type.channels: data_type for data_type in DataType}
-_url = _http.url  # kept under its old name for callers and tests
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,11 +40,11 @@ class ControllerLayout:
     """What a controller reports about its outputs, and enough to build a ``Strip`` and ``Segment`` list."""
 
     host: str
-    source: str  # "ddp" (UDP query) or "http"
+    source: str  # where the document came from: "ddp" for the UDP query, else whatever the caller passed
     pixel_count: int  # end of the last active output; 0 when no output has pixels
     channels: int  # channels per input pixel used for the slot math
     outputs: tuple[OutputInfo, ...]
-    protocol: str | None  # "ddp" | "artnet" | "e131" from Minleon "proto"
+    protocol: str | None  # "ddp" | "artnet" | "e131" from "proto"
     manufacturer: str | None
     model: str | None
     firmware: str | None
@@ -200,50 +197,6 @@ async def query_layout(
     return parse_config(config, host=host, source="ddp", status=status)
 
 
-async def _fetch_document(host: str, port: int, path: str, timeout: float) -> dict[str, Any] | None:
-    """The JSON object at ``path``; ``None`` if the request fails or is not a 200; ``DDPQueryError`` if not JSON."""
-    path = request_path(path)
-    url = _url(host, port, path)
-    try:
-        response = await request(host, port, path, timeout=timeout)
-    except TRANSPORT_ERRORS as exc:
-        _LOGGER.debug("HTTP request to %s failed: %r", url, exc)
-        return None
-    if response.body is None:
-        return None
-    document = decode_json_document(response.body, what=url)
-    if document is None:
-        raise DDPQueryError(f"{url} returned an empty body")
-    return document
-
-
-async def fetch_layout_http(
-    host: str,
-    *,
-    port: int = 80,
-    timeout: float = 2.0,
-    config_path: str = "/api/config",
-    status_path: str = "/api/status",
-) -> ControllerLayout | None:
-    """Read the layout from the controller's HTTP API; ``None`` if it serves no config there."""
-    validate_port(port)
-    validate_timeout(timeout)
-    config = await _fetch_document(host, port, config_path, timeout)
-    if config is None:
-        return None
-    try:
-        status = await _fetch_document(host, port, status_path, timeout)
-    except DDPQueryError as exc:
-        _LOGGER.debug("ignoring unusable HTTP status from %s: %s", host, exc)
-        status = None
-    return parse_config(config, host=host, source="http", status=status)
-
-
-async def discover(
-    host: str, *, port: int = DDP_PORT, http_port: int = 80, timeout: float = 1.0
-) -> ControllerLayout | None:
-    """DDP query first, then the HTTP API; ``timeout`` bounds the DDP wait, HTTP uses its own default."""
-    layout = await query_layout(host, port=port, timeout=timeout)
-    if layout is not None:
-        return layout
-    return await fetch_layout_http(host, port=http_port)
+async def discover(host: str, *, port: int = DDP_PORT, timeout: float = 1.0) -> ControllerLayout | None:
+    """Ask the controller over DDP; ``None`` if it does not answer the config query within ``timeout``."""
+    return await query_layout(host, port=port, timeout=timeout)

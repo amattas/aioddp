@@ -12,7 +12,7 @@
 - Bench-test CLI (`pyddp`, `[cli]` extra)
 - Zero runtime dependencies for the core package
 
-First target: Minleon NDB-Pro driving Rainmin RGB+ pixels. Nothing in the library is Minleon-specific.
+First target: Minleon NDB-Pro driving Rainmin RGB+ pixels. Nothing in the library is vendor-specific: pyddp knows no vendor and has no HTTP client. Vendor control (the NDB-Pro's built-in effects, its HTTP-served layout) lives in the separate `pyminleon` library.
 
 ### What This Is NOT
 - Not a Home Assistant integration (hass-ddp is; it imports pyddp and holds no protocol code)
@@ -53,9 +53,7 @@ pyddp/
 │   ├── color.py          # Gamma, brightness, Kelvin, brightness cap, color order
 │   ├── effects/          # base.py (contract, params), registry, one module per effect
 │   ├── runner.py         # EffectRunner, fade()
-│   ├── discovery.py      # ControllerLayout from a DDP JSON config query or the same document over HTTP
-│   ├── ndb.py            # NDBController: Minleon NDB-Pro built-in effects, intensity, preset recall over HTTP
-│   ├── _http.py          # Private minimal asyncio HTTP/1.0 client shared by discovery and ndb
+│   ├── discovery.py      # ControllerLayout from a DDP JSON config query; parse_config for documents fetched elsewhere
 │   ├── const.py          # Port, header sizes, flag bits, data type codes, defaults
 │   ├── exceptions.py     # PyDDPError hierarchy
 │   └── cli.py            # pyddp command (click + rich), [cli] extra
@@ -72,12 +70,11 @@ pyddp/
 - `DDPSender(strip, keepalive_interval=None)`: `send_frame`, `fill`, `off`, `push`, `release`, `close`. No raw-bytes send path. `release()` pauses keepalive until the next frame so a controller can fall back to its built-in effect
 - `EffectRunner(sender, segment, effect, fps, params, brightness, seed)`: `start`, `stop`, `update`, `wait`
 - `Effect`: pure `render(length, t, params, seed) -> bytes` of canonical RGB
-- `discover(host) -> ControllerLayout | None`: pixel count and one `OutputInfo` per output from a DDP query (destinations 250/251) or the same JSON over HTTP; `layout.segments()` is one `Segment` per active output. `DDPSender.query(destination)` is the raw read
-- `NDBController(host, port=80, timeout=3.0)`: `state()`, `presets()`, `set_effect(name)`, `set_intensity(percent)`, `recall_preset(slot)` for the NDB-Pro's built-in effects
+- `discover(host) -> ControllerLayout | None`: pixel count and one `OutputInfo` per output from a DDP query (destinations 250/251); `layout.segments()` is one `Segment` per active output. `DDPSender.query(destination)` is the raw read. `parse_config(document, host=, source=, status=)` builds the same layout from a JSON document fetched by other means (for example over a controller's HTTP API by `pyminleon`)
 
-Exceptions: `PyDDPError` > `ConfigError`, `DDPSendError`, `EffectError`, `DDPQueryError`, `ControllerError`.
+Exceptions: `PyDDPError` > `ConfigError`, `DDPSendError`, `EffectError`, `DDPQueryError`.
 
-Vendor-aware code lives in two places only. Discovery is best effort: `fetch_layout_http` defaults to the `/api/config` and `/api/status` paths the Minleon NDB-Pro serves, parsing the DDP-spec JSON document. `ndb.py` is the one vendor-specific module: it drives the NDB-Pro's built-in effects through the endpoints its web UI uses (`POST /api/control`, `GET /pshows.html?r=N`) and reads state from its HTML pages. It never writes saved settings (`saveon`, preset `Set`). Nothing else in pyddp knows a vendor.
+pyddp knows no vendor and has no HTTP client. Discovery is the DDP query alone; controllers that serve their config over HTTP are read by `pyminleon`, which hands the JSON to `parse_config`. Vendor control of a controller's built-in effects also lives in `pyminleon`.
 
 ## DDP Protocol Essentials
 
@@ -94,7 +91,7 @@ UDP to port 4048. 10-byte header followed by raw pixel bytes.
 | 10+ | Data | Pixel bytes in the strip's channel order |
 
 - Max payload 1440 bytes per packet (480 RGB or 360 RGBW pixels); push only on the last packet
-- Query flag (`0x02`) to destination 250 (JSON config) or 251 (JSON status) asks for a reply (flag `0x04`, push on the last packet). Optional; the NDB-Pro ignores it and serves the same JSON over HTTP instead
+- Query flag (`0x02`) to destination 250 (JSON config) or 251 (JSON status) asks for a reply (flag `0x04`, push on the last packet). Optional; some controllers (the NDB-Pro) ignore it
 - No acknowledgement, no priority: one sender per controller
 - Segments are byte ranges; to latch several together, send without push and push once at the end
 - `close()` does not blank the lights; blanking is an explicit `off()`
