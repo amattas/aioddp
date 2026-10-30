@@ -12,10 +12,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from pyddp.const import DDP_PORT, DESTINATION_CONFIG, DESTINATION_STATUS, MAX_OFFSET, DataType
-from pyddp.exceptions import DDPQueryError
-from pyddp.sender import DDPSender
-from pyddp.strip import Segment, Strip
+from aioddp.const import DDP_PORT, DESTINATION_CONFIG, DESTINATION_STATUS, MAX_OFFSET, DataType
+from aioddp.exceptions import DDPQueryError
+from aioddp.sender import DDPSender
+from aioddp.strip import Segment, Strip
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ class ControllerLayout:
 
     @property
     def data_type(self) -> DataType | None:
-        """The pyddp data type matching ``channels``, or ``None`` when pyddp cannot drive it."""
+        """The aioddp data type matching ``channels``, or ``None`` when aioddp cannot drive it."""
         return _DATA_TYPES.get(self.channels)
 
     def segments(self) -> list[Segment]:

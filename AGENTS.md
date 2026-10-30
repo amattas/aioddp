@@ -1,4 +1,4 @@
-# pyddp - Python Library for DDP LED Controllers
+# aioddp - Python Library for DDP LED Controllers
 
 ## Project Overview
 
@@ -9,13 +9,13 @@
 - Strips and segments mapped to byte offsets
 - Six deterministic effects and an `EffectRunner`
 - Global brightness cap enforced in the library
-- Bench-test CLI (`pyddp`, `[cli]` extra)
+- Bench-test CLI (`aioddp`, `[cli]` extra)
 - Zero runtime dependencies for the core package
 
-First target: Minleon NDB-Pro driving Rainmin RGB+ pixels. Nothing in the library is vendor-specific: pyddp knows no vendor and has no HTTP client. Vendor control (the NDB-Pro's built-in effects, its HTTP-served layout) lives in the separate `pyminleon` library.
+First target: Minleon NDB-Pro driving Rainmin RGB+ pixels. Nothing in the library is vendor-specific: aioddp knows no vendor and has no HTTP client. Vendor control (the NDB-Pro's built-in effects, its HTTP-served layout) lives in the separate `pyminleon` library.
 
 ### What This Is NOT
-- Not a Home Assistant integration (hass-ddp is; it imports pyddp and holds no protocol code)
+- Not a Home Assistant integration (hass-ddp is; it imports aioddp and holds no protocol code)
 - Not a DDP receiver (the only thing it reads is a JSON reply to its own layout query)
 - Not an E1.31, Art-Net, or DMX sender
 - Not an xLights sequence player
@@ -27,7 +27,7 @@ If bytes are being built anywhere else, that code belongs here.
 ## Quick Start
 
 ```python
-from pyddp import DDPSender, EffectRunner, Segment, Strip
+from aioddp import DDPSender, EffectRunner, Segment, Strip
 
 strip = Strip(host="10.0.40.20", pixel_count=300, brightness_cap=0.6)
 roof = Segment("roofline", start=0, length=260)
@@ -44,8 +44,8 @@ Host and pixel counts are placeholders. There is no sync API in 0.1.0.
 ## Architecture Overview
 
 ```
-pyddp/
-├── src/pyddp/
+aioddp/
+├── src/aioddp/
 │   ├── __init__.py       # Public exports
 │   ├── protocol.py       # Header encode/decode, flags, data types, chunking
 │   ├── sender.py         # DDPSender: async UDP endpoint, sequence, send_frame, keepalive
@@ -55,8 +55,8 @@ pyddp/
 │   ├── runner.py         # EffectRunner, fade()
 │   ├── discovery.py      # ControllerLayout from a DDP JSON config query; parse_config for documents fetched elsewhere
 │   ├── const.py          # Port, header sizes, flag bits, data type codes, defaults
-│   ├── exceptions.py     # PyDDPError hierarchy
-│   └── cli.py            # pyddp command (click + rich), [cli] extra
+│   ├── exceptions.py     # DDPError hierarchy
+│   └── cli.py            # aioddp command (click + rich), [cli] extra
 ├── tests/
 ├── scripts/
 └── docs/
@@ -72,9 +72,9 @@ pyddp/
 - `Effect`: pure `render(length, t, params, seed) -> bytes` of canonical RGB
 - `discover(host) -> ControllerLayout | None`: pixel count and one `OutputInfo` per output from a DDP query (destinations 250/251); `layout.segments()` is one `Segment` per active output. `DDPSender.query(destination)` is the raw read. `parse_config(document, host=, source=, status=)` builds the same layout from a JSON document fetched by other means (for example over a controller's HTTP API by `pyminleon`)
 
-Exceptions: `PyDDPError` > `ConfigError`, `DDPSendError`, `EffectError`, `DDPQueryError`.
+Exceptions: `DDPError` > `ConfigError`, `DDPSendError`, `EffectError`, `DDPQueryError`.
 
-pyddp knows no vendor and has no HTTP client. Discovery is the DDP query alone; controllers that serve their config over HTTP are read by `pyminleon`, which hands the JSON to `parse_config`. Vendor control of a controller's built-in effects also lives in `pyminleon`.
+aioddp knows no vendor and has no HTTP client. Discovery is the DDP query alone; controllers that serve their config over HTTP are read by `pyminleon`, which hands the JSON to `parse_config`. Vendor control of a controller's built-in effects also lives in `pyminleon`.
 
 ## DDP Protocol Essentials
 
@@ -111,14 +111,14 @@ Every frame from any caller passes through `color.process_frame`:
 
 ## Development
 
-Python env is the conda env `pyddp` (never base, never venv).
+Python env is the conda env `aioddp` (never base, never venv).
 
 ```bash
-conda run -n pyddp python -m pytest -q
-conda run -n pyddp ruff check .
-conda run -n pyddp black --check .
-conda run -n pyddp mypy
-conda run -n pyddp python scripts/check_coverage.py
+conda run -n aioddp python -m pytest -q
+conda run -n aioddp ruff check .
+conda run -n aioddp black --check .
+conda run -n aioddp mypy
+conda run -n aioddp python scripts/check_coverage.py
 ```
 
 Coverage gates: 80% total, 95% on `protocol.py` and `color.py`.
@@ -129,20 +129,20 @@ Coverage gates: 80% total, 95% on `protocol.py` and `color.py`.
 - `udp_listener` fixture: real asyncio UDP socket on loopback; sender and CLI tests assert the exact bytes on the wire, no mocking
 - Golden bytes for headers, chunking, offsets, push flag, sequence wrap, and effect frames (`tests/golden/`, regenerate only via `python -m tests.golden --write`)
 - Effects tested as pure functions with fixed seeds
-- Render budget: median under 2 ms for 500 pixels per effect, scaled by `PYDDP_BENCH_FACTOR` (CI sets 3)
+- Render budget: median under 2 ms for 500 pixels per effect, scaled by `AIODDP_BENCH_FACTOR` (CI sets 3)
 - `no_leaked_tasks` autouse fixture enforces no orphaned asyncio tasks
 
 ## Source of Truth
 
-Design and per-component specs live in `docs/superpowers/specs/` (start with `2026-10-28-pyddp-design.md`). Where a component spec and the design doc disagree, the component spec wins and the design doc needs updating. Controller test results go in `docs/compatibility.md`.
+Design and per-component specs live in `docs/superpowers/specs/` (start with `2026-10-28-aioddp-design.md`). Where a component spec and the design doc disagree, the component spec wins and the design doc needs updating. Controller test results go in `docs/compatibility.md`.
 
 ## Technical Decisions
 
-- `src/pyddp` layout, hatchling, `requires-python >=3.12`, `dependencies = []`
+- `src/aioddp` layout, hatchling, `requires-python >=3.12`, `dependencies = []`
 - Extras: `cli` (click, rich, pyyaml), `dev`
 - black line length 120; ruff `E, F, I, B, UP, SIM, S`; mypy strict; bandit
 - Standard `logging`; never log full frames above DEBUG
-- hass-ddp imports only from `pyddp`, never from submodules
+- hass-ddp imports only from `aioddp`, never from submodules
 
 ## License
 

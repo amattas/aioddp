@@ -17,16 +17,16 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner, Result
 
-from pyddp.cli import cli
-from pyddp.const import DESTINATION_CONFIG
-from pyddp.effects import EFFECTS
+from aioddp.cli import cli
+from aioddp.const import DESTINATION_CONFIG
+from aioddp.effects import EFFECTS
 from tests.conftest import UDPListener, config_responder, reply_packet
 
 WHITE = bytes([255, 255, 255])
 
 
 class CLI:
-    """Invokes ``pyddp`` from a temp working directory; ``target`` aims it at the listener with literal bytes."""
+    """Invokes ``aioddp`` from a temp working directory; ``target`` aims it at the listener with literal bytes."""
 
     def __init__(self, listener: UDPListener, workdir: Path) -> None:
         self.listener = listener
@@ -236,8 +236,8 @@ async def test_version_prints_metadata_version(run: CLI) -> None:
     result = await run("version")
     as_json = await run("--json", "version")
     assert result.exit_code == as_json.exit_code == 0
-    assert result.stdout == f"pyddp {version('pyddp')}\n"
-    assert json.loads(as_json.stdout) == {"version": version("pyddp")}
+    assert result.stdout == f"aioddp {version('aioddp')}\n"
+    assert json.loads(as_json.stdout) == {"version": version("aioddp")}
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="SIGINT delivery to a child process is POSIX-only")
@@ -245,7 +245,7 @@ async def test_ctrl_c_blanks_and_exits_130(run: CLI) -> None:
     proc = await asyncio.create_subprocess_exec(
         sys.executable,
         "-m",
-        "pyddp.cli",
+        "aioddp.cli",
         *run.target,
         "effect",
         "chase",
@@ -264,9 +264,9 @@ async def test_ctrl_c_blanks_and_exits_130(run: CLI) -> None:
 
 @pytest.mark.parametrize("tracebacks", [False, True])
 def test_log_handler_shows_tracebacks_only_when_asked(capsys: pytest.CaptureFixture[str], tracebacks: bool) -> None:
-    from pyddp.cli import _StderrHandler
+    from aioddp.cli import _StderrHandler
 
-    logger = logging.getLogger("pyddp.test_cli")
+    logger = logging.getLogger("aioddp.test_cli")
     handler = _StderrHandler(tracebacks=tracebacks)
     logger.addHandler(handler)
     try:
@@ -322,7 +322,7 @@ async def test_query_json(run: CLI) -> None:
     [
         (
             b'{"config": {"proto": 2, "conv": 3, "ports": [{"l": 4, "ss": 1}]}}',
-            ["controller protocol is e131; set it to DDP", "pyddp cannot drive 1-channel pixels"],
+            ["controller protocol is e131; set it to DDP", "aioddp cannot drive 1-channel pixels"],
             ["data_type", "firmware"],
         ),
         (b'{"config": {"ports": [{"l": 0, "ss": 1}]}}', ["reports no pixels"], ["strip:"]),

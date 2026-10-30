@@ -1,8 +1,8 @@
-# pyddp component spec: color pipeline
+# aioddp component spec: color pipeline
 
 Date: 2026-10-28
 Status: Draft
-Parent: `2026-10-28-pyddp-design.md`
+Parent: `2026-10-28-aioddp-design.md`
 Module: `color.py`
 
 ## Scope

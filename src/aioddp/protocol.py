@@ -10,7 +10,7 @@ import struct
 from dataclasses import dataclass
 from typing import Any
 
-from pyddp.const import (
+from aioddp.const import (
     DESTINATION_DEFAULT,
     FLAG_PUSH,
     FLAG_QUERY,
@@ -24,7 +24,7 @@ from pyddp.const import (
     SEQUENCE_MAX,
     SEQUENCE_MIN,
 )
-from pyddp.exceptions import ConfigError, DDPQueryError
+from aioddp.exceptions import ConfigError, DDPQueryError
 
 
 @dataclass(frozen=True, slots=True)

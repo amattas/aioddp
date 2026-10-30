@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from pyddp.color import (
+from aioddp.color import (
     Color,
     expand_rgb_to_rgbw,
     hsv_to_rgb,
@@ -18,9 +18,9 @@ from pyddp.color import (
     scale_color,
     solid_pixels,
 )
-from pyddp.const import DataType
-from pyddp.exceptions import ConfigError
-from pyddp.strip import Strip
+from aioddp.const import DataType
+from aioddp.exceptions import ConfigError
+from aioddp.strip import Strip
 
 R, G, B = b"\xff\x00\x00", b"\x00\xff\x00", b"\x00\x00\xff"
 

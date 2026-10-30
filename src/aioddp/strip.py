@@ -6,8 +6,8 @@ import math
 from dataclasses import dataclass
 from typing import TypeGuard
 
-from pyddp.const import DDP_PORT, DEFAULT_BRIGHTNESS_CAP, DEFAULT_GAMMA, DESTINATION_DEFAULT, MAX_OFFSET, DataType
-from pyddp.exceptions import ConfigError
+from aioddp.const import DDP_PORT, DEFAULT_BRIGHTNESS_CAP, DEFAULT_GAMMA, DESTINATION_DEFAULT, MAX_OFFSET, DataType
+from aioddp.exceptions import ConfigError
 
 _MAX_GAMMA = 4.0
 

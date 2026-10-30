@@ -1,8 +1,8 @@
-# pyddp component spec: Strip and Segment
+# aioddp component spec: Strip and Segment
 
 Date: 2026-10-28
 Status: Draft
-Parent: `2026-10-28-pyddp-design.md`
+Parent: `2026-10-28-aioddp-design.md`
 Module: `strip.py`
 
 ## Scope

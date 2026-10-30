@@ -1,8 +1,8 @@
-# pyddp component spec: DDPSender
+# aioddp component spec: DDPSender
 
 Date: 2026-10-28
 Status: Draft
-Parent: `2026-10-28-pyddp-design.md`
+Parent: `2026-10-28-aioddp-design.md`
 Module: `sender.py`
 
 ## Scope
@@ -77,7 +77,7 @@ Declared `async` even though `sendto` does not await, so the API does not change
     async def query(self, destination: int = DESTINATION_CONFIG, *, timeout: float = 1.0) -> dict[str, Any] | None
 ```
 
-The one read path. Sends `build_query_packet` and waits up to `timeout` for reply packets (reply flag set, matching destination) until one carries push; returns the parsed JSON object, `None` on timeout or an empty reply, `DDPQueryError` on an unparseable one. `_DDPProtocol.datagram_received` exists only to feed this; every other datagram is dropped. Full contract, including concurrency and close behavior, is in `2026-10-29-pyddp-discovery.md`.
+The one read path. Sends `build_query_packet` and waits up to `timeout` for reply packets (reply flag set, matching destination) until one carries push; returns the parsed JSON object, `None` on timeout or an empty reply, `DDPQueryError` on an unparseable one. `_DDPProtocol.datagram_received` exists only to feed this; every other datagram is dropped. Full contract, including concurrency and close behavior, is in `2026-10-29-aioddp-discovery.md`.
 
 ## Shadow buffer
 
@@ -98,7 +98,7 @@ loop:
         send the shadow buffer as one full-strip frame, push=True, via build_packets
 ```
 
-It reuses the sequence counter and counts in `stats` like any other send. It runs only when the caller has been idle, so an active effect never doubles traffic. It is off by default; the compatibility page records which controllers blank without it. The task is created with a name (`pyddp-keepalive-<host>`) and `close()` always cancels and awaits it so no task outlives the sender.
+It reuses the sequence counter and counts in `stats` like any other send. It runs only when the caller has been idle, so an active effect never doubles traffic. It is off by default; the compatibility page records which controllers blank without it. The task is created with a name (`aioddp-keepalive-<host>`) and `close()` always cancels and awaits it so no task outlives the sender.
 
 ### release()
 

@@ -7,11 +7,11 @@ import sys
 from pathlib import Path
 
 FLOORS: dict[str, float] = {
-    "src/pyddp/protocol.py": 95.0,
-    "src/pyddp/color.py": 95.0,
-    "src/pyddp/runner.py": 90.0,
-    "src/pyddp/cli.py": 90.0,
-    "src/pyddp/discovery.py": 90.0,
+    "src/aioddp/protocol.py": 95.0,
+    "src/aioddp/color.py": 95.0,
+    "src/aioddp/runner.py": 90.0,
+    "src/aioddp/cli.py": 90.0,
+    "src/aioddp/discovery.py": 90.0,
 }
 
 

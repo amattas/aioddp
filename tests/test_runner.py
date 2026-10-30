@@ -10,19 +10,19 @@ from typing import Any, ClassVar
 
 import pytest
 
-from pyddp.effects import Effect, ParamSpec
-from pyddp.effects.base import BaseEffect
-from pyddp.exceptions import ConfigError, DDPSendError, EffectError
-from pyddp.runner import EffectRunner, fade
-from pyddp.sender import DDPSender
-from pyddp.strip import Segment, Strip
+from aioddp.effects import Effect, ParamSpec
+from aioddp.effects.base import BaseEffect
+from aioddp.exceptions import ConfigError, DDPSendError, EffectError
+from aioddp.runner import EffectRunner, fade
+from aioddp.sender import DDPSender
+from aioddp.strip import Segment, Strip
 from tests.conftest import UDPListener
 
 MakeStrip = Callable[..., Strip]
 
 
 def _effect_tasks() -> set[asyncio.Task[Any]]:
-    return {t for t in asyncio.all_tasks() if t.get_name().startswith("pyddp-effect-")}
+    return {t for t in asyncio.all_tasks() if t.get_name().startswith("aioddp-effect-")}
 
 
 class _Boom(BaseEffect):
@@ -55,7 +55,7 @@ async def test_runner_streams_frames_at_fps_and_stops_cleanly(udp_listener: UDPL
     runner = EffectRunner(sender, segment, "breathe", fps=50)
     await runner.start()
     assert runner.running
-    assert {t.get_name() for t in _effect_tasks()} == {"pyddp-effect-breathe-peak"}
+    assert {t.get_name() for t in _effect_tasks()} == {"aioddp-effect-breathe-peak"}
     await asyncio.sleep(0.2)
     await runner.stop()
 
@@ -167,7 +167,7 @@ async def test_failure_ends_loop_and_is_captured(
     assert isinstance(runner.error, error)
     assert not runner.running
     assert not _effect_tasks()
-    (record,) = [r for r in caplog.records if r.name == "pyddp.runner"]
+    (record,) = [r for r in caplog.records if r.name == "aioddp.runner"]
     assert record.levelno == logging.ERROR
     assert "eaves" in record.getMessage()
     await runner.stop()  # no-op after the task already ended

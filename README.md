@@ -1,11 +1,13 @@
-# pyddp
+# aioddp
 
 **Asyncio Python library for sending DDP pixel data to LED controllers**
 
-[![CI](https://github.com/amattas/pyddp/actions/workflows/ci.yml/badge.svg)](https://github.com/amattas/pyddp/actions/workflows/ci.yml)
+[![CI](https://github.com/amattas/aioddp/actions/workflows/ci.yml/badge.svg)](https://github.com/amattas/aioddp/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-pyddp is a standalone, platform-agnostic library for sending DDP (Distributed Display Protocol) pixel data to LED controllers, with a small deterministic effect library and a bench-test CLI.
+aioddp is a standalone, platform-agnostic library for sending DDP (Distributed Display Protocol) pixel data to LED controllers, with a small deterministic effect library and a bench-test CLI.
+
+> Formerly named `pyddp`; renamed to `aioddp` because the `pyddp` name on PyPI belongs to an unrelated project (a 2015 Meteor DDP client).
 
 > Status: pre-release. Interfaces may change before 0.1.0.
 
@@ -22,8 +24,8 @@ pyddp is a standalone, platform-agnostic library for sending DDP (Distributed Di
 ## Installation
 
 ```bash
-pip install pyddp
-pip install "pyddp[cli]"   # adds the pyddp command
+pip install aioddp
+pip install "aioddp[cli]"   # adds the aioddp command
 ```
 
 Requires Python 3.12+.
@@ -32,7 +34,7 @@ Requires Python 3.12+.
 
 ```python
 import asyncio
-from pyddp import DDPSender, EffectRunner, Segment, Strip
+from aioddp import DDPSender, EffectRunner, Segment, Strip
 
 async def main():
     strip = Strip(host="10.0.40.20", pixel_count=300, brightness_cap=0.6)
@@ -54,18 +56,18 @@ Host and pixel counts are placeholders.
 ## CLI Quick Start
 
 ```bash
-pyddp --host 10.0.40.20 query                           # ask the controller for its outputs; prints a config.yaml
-pyddp --host 10.0.40.20 --count 300 test                # walk a lit pixel down the string
-pyddp --host 10.0.40.20 --count 300 fill --color ff8800 --brightness 0.5
-pyddp --host 10.0.40.20 --count 300 effect chase --param speed=8
-pyddp --host 10.0.40.20 --count 300 off
-pyddp effects                                           # list effects and params
+aioddp --host 10.0.40.20 query                           # ask the controller for its outputs; prints a config.yaml
+aioddp --host 10.0.40.20 --count 300 test                # walk a lit pixel down the string
+aioddp --host 10.0.40.20 --count 300 fill --color ff8800 --brightness 0.5
+aioddp --host 10.0.40.20 --count 300 effect chase --param speed=8
+aioddp --host 10.0.40.20 --count 300 off
+aioddp effects                                           # list effects and params
 ```
 
-Run `pyddp query` first against new hardware, then `pyddp test`. `query` uses the DDP JSON config query; a controller that does not answer it is configured by hand. Controllers that serve their layout over HTTP (the Minleon NDB-Pro) are read by the separate `pyminleon` library, which can pass the document to `pyddp.parse_config`. Host and count can also come from `config.yaml`; see `docs/superpowers/specs/2026-10-28-pyddp-cli.md`.
+Run `aioddp query` first against new hardware, then `aioddp test`. `query` uses the DDP JSON config query; a controller that does not answer it is configured by hand. Controllers that serve their layout over HTTP (the Minleon NDB-Pro) are read by the separate `pyminleon` library, which can pass the document to `aioddp.parse_config`. Host and count can also come from `config.yaml`; see `docs/superpowers/specs/2026-10-28-aioddp-cli.md`.
 
 ```python
-from pyddp import discover
+from aioddp import discover
 
 layout = await discover("10.0.40.20")
 if layout:

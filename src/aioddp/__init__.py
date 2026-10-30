@@ -1,18 +1,18 @@
-"""pyddp: asyncio DDP sender, color pipeline, and effects for LED pixel controllers."""
+"""aioddp: asyncio DDP sender, color pipeline, and effects for LED pixel controllers."""
 
 from importlib.metadata import PackageNotFoundError, version
 
-from pyddp.color import kelvin_to_rgb, parse_color, process_frame
-from pyddp.const import DDP_PORT, DEFAULT_FPS, DEFAULT_GAMMA, MAX_FPS, DataType
-from pyddp.discovery import ControllerLayout, OutputInfo, discover, parse_config
-from pyddp.effects import EffectInfo, ParamSpec, get_effect, list_effects, validate_params
-from pyddp.exceptions import ConfigError, DDPQueryError, DDPSendError, EffectError, PyDDPError
-from pyddp.runner import EffectRunner, RunnerStats, fade
-from pyddp.sender import DDPSender, SenderStats
-from pyddp.strip import Segment, Strip
+from aioddp.color import kelvin_to_rgb, parse_color, process_frame
+from aioddp.const import DDP_PORT, DEFAULT_FPS, DEFAULT_GAMMA, MAX_FPS, DataType
+from aioddp.discovery import ControllerLayout, OutputInfo, discover, parse_config
+from aioddp.effects import EffectInfo, ParamSpec, get_effect, list_effects, validate_params
+from aioddp.exceptions import ConfigError, DDPError, DDPQueryError, DDPSendError, EffectError
+from aioddp.runner import EffectRunner, RunnerStats, fade
+from aioddp.sender import DDPSender, SenderStats
+from aioddp.strip import Segment, Strip
 
 try:
-    __version__ = version("pyddp")
+    __version__ = version("aioddp")
 except PackageNotFoundError:  # pragma: no cover - running from a source tree without install
     __version__ = "0.0.0"
 
@@ -44,7 +44,7 @@ __all__ = [
     "kelvin_to_rgb",
     "process_frame",
     # errors
-    "PyDDPError",
+    "DDPError",
     "ConfigError",
     "DDPSendError",
     "DDPQueryError",

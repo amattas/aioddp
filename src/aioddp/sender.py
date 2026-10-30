@@ -12,10 +12,10 @@ from dataclasses import dataclass
 from types import TracebackType
 from typing import Any
 
-from pyddp.color import Color, expand_rgb_to_rgbw, process_frame, solid_pixels
-from pyddp.const import DESTINATION_CONFIG, HEADER_SIZE
-from pyddp.exceptions import ConfigError, DDPQueryError, DDPSendError
-from pyddp.protocol import (
+from aioddp.color import Color, expand_rgb_to_rgbw, process_frame, solid_pixels
+from aioddp.const import DESTINATION_CONFIG, HEADER_SIZE
+from aioddp.exceptions import ConfigError, DDPQueryError, DDPSendError
+from aioddp.protocol import (
     DDPHeader,
     SequenceCounter,
     build_packets,
@@ -23,7 +23,7 @@ from pyddp.protocol import (
     build_query_packet,
     decode_json_document,
 )
-from pyddp.strip import Segment, Strip
+from aioddp.strip import Segment, Strip
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -123,7 +123,7 @@ class DDPSender:
             self._transport, self._protocol = transport, protocol
             if self._keepalive_interval is not None:
                 self._keepalive_task = loop.create_task(
-                    self._keepalive(self._keepalive_interval), name=f"pyddp-keepalive-{strip.host}"
+                    self._keepalive(self._keepalive_interval), name=f"aioddp-keepalive-{strip.host}"
                 )
 
     async def close(self) -> None:

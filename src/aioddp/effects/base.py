@@ -11,8 +11,8 @@ import math
 from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar, Literal, NamedTuple, Protocol, cast
 
-from pyddp.color import RGB, parse_color
-from pyddp.exceptions import ConfigError, EffectError
+from aioddp.color import RGB, parse_color
+from aioddp.exceptions import ConfigError, EffectError
 
 ParamKind = Literal["float", "int", "bool", "color", "colors"]
 

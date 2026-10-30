@@ -1,8 +1,8 @@
-# pyddp component spec: protocol, constants, exceptions
+# aioddp component spec: protocol, constants, exceptions
 
 Date: 2026-10-28
 Status: Draft
-Parent: `2026-10-28-pyddp-design.md`
+Parent: `2026-10-28-aioddp-design.md`
 Modules: `const.py`, `exceptions.py`, `protocol.py`
 
 ## Scope
@@ -63,11 +63,11 @@ The DDP data type byte is `C R TTT SSS`: bit 7 customer-defined, bit 6 reserved,
 ## exceptions.py
 
 ```python
-class PyDDPError(Exception): ...
-class ConfigError(PyDDPError, ValueError): ...   # bad strip, segment, params, or color
-class DDPSendError(PyDDPError): ...               # socket could not be opened or sender is closed
-class EffectError(PyDDPError): ...                # unknown effect, bad params, or render failure
-class DDPQueryError(PyDDPError): ...              # a controller answered a query or config request with something unusable
+class DDPError(Exception): ...
+class ConfigError(DDPError, ValueError): ...   # bad strip, segment, params, or color
+class DDPSendError(DDPError): ...               # socket could not be opened or sender is closed
+class EffectError(DDPError): ...                # unknown effect, bad params, or render failure
+class DDPQueryError(DDPError): ...              # a controller answered a query or config request with something unusable
 ```
 
 `ConfigError` also subclasses `ValueError` so callers that validate user input generically still catch it. Transient UDP send errors are not exceptions (see the sender spec); `DDPSendError` is reserved for "this sender cannot send at all".
@@ -169,7 +169,7 @@ A header-only packet, `length = 0`, `offset = 0`, push set. Used to latch severa
 def build_query_packet(*, sequence: SequenceCounter, destination: int, offset: int = 0, length: int = 0) -> bytes
 ```
 
-A header-only read request: flags `FLAG_VERSION_1 | FLAG_QUERY`, data type 0, the given destination (normally `DESTINATION_CONFIG` or `DESTINATION_STATUS`), one sequence number consumed. Same range checks as `build_header`. The reply handling lives in the sender; see `2026-10-29-pyddp-discovery.md`.
+A header-only read request: flags `FLAG_VERSION_1 | FLAG_QUERY`, data type 0, the given destination (normally `DESTINATION_CONFIG` or `DESTINATION_STATUS`), one sequence number consumed. Same range checks as `build_header`. The reply handling lives in the sender; see `2026-10-29-aioddp-discovery.md`.
 
 ## Golden vectors
 

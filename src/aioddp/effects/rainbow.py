@@ -6,8 +6,8 @@ from collections.abc import Mapping
 from functools import lru_cache
 from typing import Any, ClassVar
 
-from pyddp.color import hsv_to_rgb
-from pyddp.effects.base import BaseEffect, ParamSpec
+from aioddp.color import hsv_to_rgb
+from aioddp.effects.base import BaseEffect, ParamSpec
 
 WHEEL_SIZE = 1536  # 6 hue sextants x 256 steps
 

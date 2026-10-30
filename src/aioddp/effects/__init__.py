@@ -5,15 +5,15 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, NamedTuple
 
-from pyddp.color import RGB
-from pyddp.effects.base import Effect, ParamSpec, validate_params
-from pyddp.effects.breathe import Breathe
-from pyddp.effects.chase import Chase
-from pyddp.effects.palette import Palette
-from pyddp.effects.rainbow import Rainbow
-from pyddp.effects.solid import Solid
-from pyddp.effects.twinkle import Twinkle
-from pyddp.exceptions import EffectError
+from aioddp.color import RGB
+from aioddp.effects.base import Effect, ParamSpec, validate_params
+from aioddp.effects.breathe import Breathe
+from aioddp.effects.chase import Chase
+from aioddp.effects.palette import Palette
+from aioddp.effects.rainbow import Rainbow
+from aioddp.effects.solid import Solid
+from aioddp.effects.twinkle import Twinkle
+from aioddp.exceptions import EffectError
 
 EFFECTS: Mapping[str, type[Effect]] = {
     "solid": Solid,

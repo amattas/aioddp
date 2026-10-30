@@ -32,7 +32,7 @@ body:
       label: Steps to Reproduce
       description: Steps to reproduce the behavior
       placeholder: |
-        1. Install pyddp with '...'
+        1. Install aioddp with '...'
         2. Run command '...'
         3. See error
     validations:
@@ -46,7 +46,7 @@ body:
       placeholder: |
         ```python
         import asyncio
-        from pyddp import DDPSender, Strip, Segment
+        from aioddp import DDPSender, Strip, Segment
 
         async def main():
             strip = Strip(host="192.168.1.50", pixel_count=300)
@@ -146,16 +146,16 @@ body:
       description: Describe your network setup (optional but helpful for dropped-frame or latency issues)
       placeholder: |
         e.g., Controller -> PoE switch -> Router -> Python script on same LAN
-        or: Controller -> VLAN 40 -> Home Assistant host running pyddp
+        or: Controller -> VLAN 40 -> Home Assistant host running aioddp
     validations:
       required: false
 
   - type: input
-    id: pyddp-version
+    id: aioddp-version
     attributes:
-      label: pyddp Version
-      description: What version of pyddp are you using?
-      placeholder: e.g., 0.1.0 or output of 'pip show pyddp'
+      label: aioddp Version
+      description: What version of aioddp are you using?
+      placeholder: e.g., 0.1.0 or output of 'pip show aioddp'
     validations:
       required: true
 

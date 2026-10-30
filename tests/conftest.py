@@ -9,10 +9,10 @@ from typing import Any
 
 import pytest
 
-from pyddp.const import DESTINATION_CONFIG, DESTINATION_STATUS, FLAG_PUSH, FLAG_REPLY, FLAG_VERSION_1, HEADER_SIZE
-from pyddp.protocol import DDPHeader
-from pyddp.sender import DDPSender
-from pyddp.strip import Strip
+from aioddp.const import DESTINATION_CONFIG, DESTINATION_STATUS, FLAG_PUSH, FLAG_REPLY, FLAG_VERSION_1, HEADER_SIZE
+from aioddp.protocol import DDPHeader
+from aioddp.sender import DDPSender
+from aioddp.strip import Strip
 
 # Config and status documents captured verbatim from a real controller (firmware 2.0).
 CONFIG_JSON = (

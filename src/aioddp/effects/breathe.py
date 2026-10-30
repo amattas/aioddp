@@ -6,8 +6,8 @@ import math
 from collections.abc import Mapping
 from typing import Any, ClassVar
 
-from pyddp.color import scale_color
-from pyddp.effects.base import BaseEffect, ParamSpec
+from aioddp.color import scale_color
+from aioddp.effects.base import BaseEffect, ParamSpec
 
 
 class Breathe(BaseEffect):

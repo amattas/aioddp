@@ -11,9 +11,9 @@ from typing import Any, ClassVar
 
 import pytest
 
-from pyddp.effects import EFFECTS, get_effect, list_effects
-from pyddp.effects.base import ParamSpec, validate_params
-from pyddp.exceptions import EffectError
+from aioddp.effects import EFFECTS, get_effect, list_effects
+from aioddp.effects.base import ParamSpec, validate_params
+from aioddp.exceptions import EffectError
 from tests import golden
 
 NAMES = sorted(EFFECTS)
@@ -124,7 +124,7 @@ def test_render_budget(name: str) -> None:
         instance.render(500, (5 + k) / 30, params, 0)
         samples.append(time.perf_counter() - start)
     median_ms, max_ms = statistics.median(samples) * 1e3, max(samples) * 1e3
-    limit_ms = 2.0 * float(os.environ.get("PYDDP_BENCH_FACTOR", "1.0"))
+    limit_ms = 2.0 * float(os.environ.get("AIODDP_BENCH_FACTOR", "1.0"))
     print(f"{name:8s} median {median_ms:.3f} ms  max {max_ms:.3f} ms  limit {limit_ms:.1f} ms")
     assert median_ms < limit_ms
 

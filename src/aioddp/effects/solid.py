@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, ClassVar
 
-from pyddp.effects.base import BaseEffect, ParamSpec
+from aioddp.effects.base import BaseEffect, ParamSpec
 
 
 class Solid(BaseEffect):

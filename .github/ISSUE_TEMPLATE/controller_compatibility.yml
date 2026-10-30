@@ -1,5 +1,5 @@
 name: Controller Compatibility Report
-description: Report how a DDP controller behaves with pyddp
+description: Report how a DDP controller behaves with aioddp
 title: "[Compatibility]: "
 labels: ["compatibility", "documentation"]
 body:
@@ -8,7 +8,7 @@ body:
       value: |
         Help us expand docs/compatibility.md by reporting how your DDP controller behaves!
 
-        Run the hardware checklist in docs/compatibility.md ("How to test a controller") with the `pyddp` CLI and report the answers below.
+        Run the hardware checklist in docs/compatibility.md ("How to test a controller") with the `aioddp` CLI and report the answers below.
 
         This is not for bug reports - use the Bug Report template if something isn't working correctly.
 
@@ -16,7 +16,7 @@ body:
     id: status
     attributes:
       label: Compatibility Status
-      description: Does pyddp work with your controller?
+      description: Does aioddp work with your controller?
       options:
         - Fully working
         - Mostly working (see notes)
@@ -66,7 +66,7 @@ body:
     id: data-type-byte
     attributes:
       label: Honors the data type byte?
-      description: "`pyddp fill --data-type-byte 1` then `--data-type-byte 0`. Does the controller care about the byte?"
+      description: "`aioddp fill --data-type-byte 1` then `--data-type-byte 0`. Does the controller care about the byte?"
       options:
         - Yes, only the standard byte works (0x0B RGB / 0x1B RGBW)
         - Yes, it expects a legacy value (see notes)
@@ -79,7 +79,7 @@ body:
     id: offset-layout
     attributes:
       label: Offset layout
-      description: "`pyddp fill --segment 500:10` on a controller whose outputs each have fewer than 500 pixels. Flat buffer or per-output?"
+      description: "`aioddp fill --segment 500:10` on a controller whose outputs each have fewer than 500 pixels. Flat buffer or per-output?"
       options:
         - Flat buffer across all outputs
         - Per-output offsets
@@ -92,7 +92,7 @@ body:
     id: stop-behavior
     attributes:
       label: Behavior when DDP stops
-      description: "`pyddp fill`, then wait. What does the controller do?"
+      description: "`aioddp fill`, then wait. What does the controller do?"
       options:
         - Holds the last frame
         - Blanks
@@ -114,9 +114,9 @@ body:
     id: gamma
     attributes:
       label: Applies its own gamma?
-      description: "`pyddp fill --color 808080 --no-gamma` vs `--gamma 2.2`. Which one looks like half brightness?"
+      description: "`aioddp fill --color 808080 --no-gamma` vs `--gamma 2.2`. Which one looks like half brightness?"
       options:
-        - No, pyddp gamma 2.2 looks right
+        - No, aioddp gamma 2.2 looks right
         - Yes, --no-gamma looks right
         - Unsure
         - Not tested
@@ -136,11 +136,11 @@ body:
       required: true
 
   - type: input
-    id: pyddp-version
+    id: aioddp-version
     attributes:
-      label: pyddp Version Tested
-      description: What version of pyddp did you test with?
-      placeholder: e.g., 0.1.0 or output of 'pyddp version'
+      label: aioddp Version Tested
+      description: What version of aioddp did you test with?
+      placeholder: e.g., 0.1.0 or output of 'aioddp version'
     validations:
       required: true
 
@@ -177,7 +177,7 @@ body:
     attributes:
       label: Pre-submission Checklist
       options:
-        - label: I have tested with the latest version of pyddp
+        - label: I have tested with the latest version of aioddp
           required: true
         - label: I have provided accurate controller model and firmware information
           required: true

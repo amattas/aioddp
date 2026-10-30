@@ -7,10 +7,10 @@ from typing import Any
 
 import pytest
 
-from pyddp.const import DESTINATION_STATUS, MAX_OFFSET, DataType
-from pyddp.discovery import ControllerLayout, OutputInfo, discover, parse_config, query_layout
-from pyddp.exceptions import DDPQueryError
-from pyddp.strip import Segment
+from aioddp.const import DESTINATION_STATUS, MAX_OFFSET, DataType
+from aioddp.discovery import ControllerLayout, OutputInfo, discover, parse_config, query_layout
+from aioddp.exceptions import DDPQueryError
+from aioddp.strip import Segment
 from tests.conftest import CONFIG_JSON, STATUS_JSON, UDPListener, config_responder, reply_packet
 
 CONFIG: dict[str, Any] = json.loads(CONFIG_JSON)

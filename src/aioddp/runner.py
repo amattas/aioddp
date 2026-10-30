@@ -11,11 +11,11 @@ from dataclasses import dataclass
 from types import TracebackType
 from typing import Any
 
-from pyddp.const import DEFAULT_FPS, MAX_FPS
-from pyddp.effects import Effect, get_effect, validate_params
-from pyddp.exceptions import ConfigError, DDPSendError
-from pyddp.sender import DDPSender
-from pyddp.strip import Segment
+from aioddp.const import DEFAULT_FPS, MAX_FPS
+from aioddp.effects import Effect, get_effect, validate_params
+from aioddp.exceptions import ConfigError, DDPSendError
+from aioddp.sender import DDPSender
+from aioddp.strip import Segment
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ class EffectRunner:
             raise DDPSendError("cannot start an effect runner on a sender that is not open")
         self._error = None
         task = asyncio.get_running_loop().create_task(
-            self._run(), name=f"pyddp-effect-{self._effect_cls.name}-{self._segment.name}"
+            self._run(), name=f"aioddp-effect-{self._effect_cls.name}-{self._segment.name}"
         )
         task.add_done_callback(self._on_done)
         self._task = task

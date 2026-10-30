@@ -56,7 +56,7 @@ jobs:
         run: python -m mypy src tests scripts
       - name: Test
         env:
-          PYDDP_BENCH_FACTOR: "3"
+          AIODDP_BENCH_FACTOR: "3"
         run: python -m pytest -q
       - name: Per-file coverage floors
         run: python scripts/check_coverage.py

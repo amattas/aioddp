@@ -1,8 +1,8 @@
-# pyddp component spec: query and discovery
+# aioddp component spec: query and discovery
 
 Date: 2026-10-29
 Status: Draft
-Parent: `2026-10-28-pyddp-design.md`
+Parent: `2026-10-28-aioddp-design.md`
 Modules: `discovery.py`, plus `DDPSender.query` in `sender.py` and `build_query_packet` in `protocol.py`
 
 ## Scope
@@ -11,7 +11,7 @@ DDP has no handshake, so a sender cannot learn a controller's pixel count or out
 
 Discovery is best effort. Nothing in the data path depends on it, and a controller that answers nothing is configured by hand exactly as before.
 
-pyddp has no HTTP client and knows no vendor. Some controllers (the Minleon NDB-Pro) publish the same config document over HTTP instead of answering UDP queries; the separate `pyminleon` library fetches it and hands the JSON to `parse_config`, which is public for that reason. Nothing here depends on `pyminleon`.
+aioddp has no HTTP client and knows no vendor. Some controllers (the Minleon NDB-Pro) publish the same config document over HTTP instead of answering UDP queries; the separate `pyminleon` library fetches it and hands the JSON to `parse_config`, which is public for that reason. Nothing here depends on `pyminleon`.
 
 ## The config document
 
@@ -27,7 +27,7 @@ Per port: `l` is the number of lights (pixels), `ss` the 1-based starting slot (
 | `conv` | Input channels | `conv` | Input channels |
 |---|---|---|---|
 | 0, 1, 4, 5, 6, 7, 10, 11, 12, 13 | 3 | 2, 8, 14 | 4 |
-| 3, 9 | 1 (white only; pyddp cannot drive it) | | |
+| 3, 9 | 1 (white only; aioddp cannot drive it) | | |
 
 Pixel start of an output is `(ss - 1) // channels`. The buffer is one flat buffer across outputs, for example output 2 at slot 241 is pixel 80 when output 1 has 80 three-channel pixels.
 
@@ -65,9 +65,9 @@ async def query(self, destination: int = DESTINATION_CONFIG, *, timeout: float =
 - One pending query per destination; a second concurrent query to the same destination is a programmer error (`RuntimeError`). Queries to different destinations may overlap
 - `close()` or a lost connection fails a pending query with `DDPSendError`; nothing hangs and no task leaks
 - `stats.replies_received` counts completed replies
-- `_DDPProtocol.datagram_received` is the only receive path in the library. It feeds `query` and nothing else; pyddp is still not a DDP receiver
+- `_DDPProtocol.datagram_received` is the only receive path in the library. It feeds `query` and nothing else; aioddp is still not a DDP receiver
 
-`DDPQueryError(PyDDPError)` is new: a controller answered a query or config request with something unusable.
+`DDPQueryError(DDPError)` is new: a controller answered a query or config request with something unusable.
 
 ## discovery.py
 
@@ -108,7 +108,7 @@ async def discover(host, *, port=DDP_PORT, timeout=1.0) -> ControllerLayout | No
 
 Accepts the `{"config": {...}}` wrapper or the inner object, and the same for `status`. `ports` must be a list of mappings with integer `l >= 0` and `ss >= 1` (decimal strings accepted, since the spec's example is loose about types); anything else, a duplicate port index, a `rev` that is not a bool or int, or an output that would end past `MAX_OFFSET` is `DDPQueryError` naming the port. A document from the DDP query was decoded by `decode_json_document`, which rejects NaN and Infinity; a caller passing its own document is responsible for decoding it the same way. `channels` comes from `conv` when present and known, else is inferred from the first two active outputs when `ss2 - ss1 == l1 * c` for `c` in 3 or 4, else defaults to 3. `(ss - 1)` must divide by `channels`.
 
-`segments()` returns `Segment(f"output{index + 1}", start, length)` for each active output, named to match the controller's 1-based "Output 1" in its web UI. `reverse` is always `False`: when the controller reverses an output itself, the pixel order in the DDP buffer is already what the controller wants, and reversing again in pyddp would undo it. `reversed_by_controller` carries the fact for display.
+`segments()` returns `Segment(f"output{index + 1}", start, length)` for each active output, named to match the controller's 1-based "Output 1" in its web UI. `reverse` is always `False`: when the controller reverses an output itself, the pixel order in the DDP buffer is already what the controller wants, and reversing again in aioddp would undo it. `reversed_by_controller` carries the fact for display.
 
 ### query_layout
 
@@ -118,15 +118,15 @@ Opens a throwaway `DDPSender` on `Strip(host, pixel_count=1, port=port)`, querie
 
 `query_layout` with the same arguments minus `bind_host`; the DDP query is the only path.
 
-## CLI: `pyddp query`
+## CLI: `aioddp query`
 
 ```
-pyddp --host HOST query [--timeout 1.0] [--json]
+aioddp --host HOST query [--timeout 1.0] [--json]
 ```
 
-Needs host and port only; `--count` is what this command exists to find. Human output is the controller identity line (when status answered), one row per active output with pixels, start, and whether the controller reverses it, a count of unused outputs, the total, and a `config.yaml` snippet with `strip` and one segment per active output, ready to paste. A protocol other than DDP or a channel count pyddp cannot drive prints a warning on stderr. `--json` prints one object with host, source, manufacturer, model, firmware, protocol, pixel_count, channels, data_type, outputs, and the raw config and status documents.
+Needs host and port only; `--count` is what this command exists to find. Human output is the controller identity line (when status answered), one row per active output with pixels, start, and whether the controller reverses it, a count of unused outputs, the total, and a `config.yaml` snippet with `strip` and one segment per active output, ready to paste. A protocol other than DDP or a channel count aioddp cannot drive prints a warning on stderr. `--json` prints one object with host, source, manufacturer, model, firmware, protocol, pixel_count, channels, data_type, outputs, and the raw config and status documents.
 
-No answer exits 2 with a message naming the host and the DDP port. A malformed answer exits 1 through the normal `PyDDPError` mapping.
+No answer exits 2 with a message naming the host and the DDP port. A malformed answer exits 1 through the normal `DDPError` mapping.
 
 ## Tests
 
@@ -137,4 +137,4 @@ No answer exits 2 with a message naming the host and the DDP port. A malformed a
 
 ## Compatibility notes
 
-The Minleon NDB-Pro (firmware 2.0) does not answer UDP queries to 250 or 251, from either an ephemeral source port or port 4048, so `pyddp query` gets no answer from it; its HTTP-served documents are read by `pyminleon`. Its status document reports `"push": true`. Both facts are recorded in `docs/compatibility.md`.
+The Minleon NDB-Pro (firmware 2.0) does not answer UDP queries to 250 or 251, from either an ephemeral source port or port 4048, so `aioddp query` gets no answer from it; its HTTP-served documents are read by `pyminleon`. Its status document reports `"push": true`. Both facts are recorded in `docs/compatibility.md`.

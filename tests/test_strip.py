@@ -7,9 +7,9 @@ from typing import Any
 
 import pytest
 
-from pyddp.const import DDP_PORT, DEFAULT_GAMMA, MAX_OFFSET, DataType
-from pyddp.exceptions import ConfigError
-from pyddp.strip import Segment, Strip
+from aioddp.const import DDP_PORT, DEFAULT_GAMMA, MAX_OFFSET, DataType
+from aioddp.exceptions import ConfigError
+from aioddp.strip import Segment, Strip
 
 
 def _strip(**overrides: Any) -> Strip:

@@ -1,7 +1,7 @@
-"""``pyddp`` command line: bench tool for a DDP controller with no Home Assistant in the loop.
+"""``aioddp`` command line: bench tool for a DDP controller with no Home Assistant in the loop.
 
 A thin shell over the library: every command resolves to a ``Strip``, an optional ``Segment``, and one or two
-library calls inside ``asyncio.run``. Needs the ``[cli]`` extra; ``import pyddp`` never imports this module.
+library calls inside ``asyncio.run``. Needs the ``[cli]`` extra; ``import aioddp`` never imports this module.
 """
 
 from __future__ import annotations
@@ -26,16 +26,16 @@ try:
     from rich.live import Live
     from rich.table import Table
 except ImportError as err:  # pragma: no cover - exercised only without the extra installed
-    raise ImportError("the pyddp command line needs the [cli] extra: pip install 'pyddp[cli]'") from err
+    raise ImportError("the aioddp command line needs the [cli] extra: pip install 'aioddp[cli]'") from err
 
-from pyddp.color import Color, kelvin_to_rgb, parse_color, solid_pixels
-from pyddp.const import DDP_PORT, DEFAULT_FPS, DEFAULT_GAMMA, DataType
-from pyddp.discovery import ControllerLayout, query_layout
-from pyddp.effects import Effect, ParamSpec, get_effect, list_effects
-from pyddp.exceptions import ConfigError, DDPSendError, EffectError, PyDDPError
-from pyddp.runner import EffectRunner
-from pyddp.sender import DDPSender
-from pyddp.strip import Segment, Strip
+from aioddp.color import Color, kelvin_to_rgb, parse_color, solid_pixels
+from aioddp.const import DDP_PORT, DEFAULT_FPS, DEFAULT_GAMMA, DataType
+from aioddp.discovery import ControllerLayout, query_layout
+from aioddp.effects import Effect, ParamSpec, get_effect, list_effects
+from aioddp.exceptions import ConfigError, DDPError, DDPSendError, EffectError
+from aioddp.runner import EffectRunner
+from aioddp.sender import DDPSender
+from aioddp.strip import Segment, Strip
 
 EXIT_ERROR = 1
 EXIT_SEND_ERROR = 2
@@ -140,7 +140,7 @@ class _StderrHandler(logging.Handler):
 
 
 def _configure_logging(ctx: click.Context, verbose: int) -> None:
-    logger = logging.getLogger("pyddp")
+    logger = logging.getLogger("aioddp")
     handler = _StderrHandler(tracebacks=verbose >= 2)
     handler.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
     previous_level = logger.level
@@ -167,7 +167,7 @@ def _reported_errors(ctx: click.Context) -> Iterator[None]:
     except KeyboardInterrupt:
         click.echo("Interrupted", err=True)
         raise click.exceptions.Exit(EXIT_INTERRUPTED) from None
-    except PyDDPError as err:
+    except DDPError as err:
         if _options(ctx).verbose >= 2:
             click.echo("".join(traceback.format_exception(err)).rstrip(), err=True)
         code = EXIT_SEND_ERROR if isinstance(err, DDPSendError) else EXIT_ERROR
@@ -669,7 +669,7 @@ def query(ctx: click.Context, timeout: float, as_json: bool) -> None:
     if layout.protocol not in (None, "ddp"):
         click.echo(f"warning: controller protocol is {layout.protocol}; set it to DDP", err=True)
     if layout.data_type is None:
-        click.echo(f"warning: pyddp cannot drive {layout.channels}-channel pixels", err=True)
+        click.echo(f"warning: aioddp cannot drive {layout.channels}-channel pixels", err=True)
     if not layout.pixel_count:
         click.echo("warning: controller reports no pixels on any output", err=True)
     click.echo(_layout_json(layout) if _wants_json(ctx, as_json) else _layout_text(layout))
@@ -678,14 +678,14 @@ def query(ctx: click.Context, timeout: float, as_json: bool) -> None:
 @cli.command("version")
 @click.pass_context
 def version_command(ctx: click.Context) -> None:
-    """Print the pyddp version."""
-    installed = _dist_version("pyddp")
-    click.echo(json.dumps({"version": installed}) if _options(ctx).json else f"pyddp {installed}")
+    """Print the aioddp version."""
+    installed = _dist_version("aioddp")
+    click.echo(json.dumps({"version": installed}) if _options(ctx).json else f"aioddp {installed}")
 
 
 def main() -> None:
     """Console-script entry point."""
-    cli.main(prog_name="pyddp")
+    cli.main(prog_name="aioddp")
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from functools import lru_cache
 from typing import Any, ClassVar
 
-from pyddp.effects.base import BaseEffect, ParamSpec
+from aioddp.effects.base import BaseEffect, ParamSpec
 
 
 @lru_cache(maxsize=32)

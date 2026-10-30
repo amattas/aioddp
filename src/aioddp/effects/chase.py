@@ -6,8 +6,8 @@ import math
 from collections.abc import Mapping
 from typing import Any, ClassVar
 
-from pyddp.effects.base import BaseEffect, ParamSpec
-from pyddp.exceptions import EffectError
+from aioddp.effects.base import BaseEffect, ParamSpec
+from aioddp.exceptions import EffectError
 
 
 class Chase(BaseEffect):

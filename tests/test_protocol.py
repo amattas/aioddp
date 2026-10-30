@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 import pytest
 
-from pyddp.const import (
+from aioddp.const import (
     DATA_TYPE_LEGACY,
     DESTINATION_CONFIG,
     DESTINATION_STATUS,
@@ -20,8 +20,8 @@ from pyddp.const import (
     MAX_OFFSET,
     DataType,
 )
-from pyddp.exceptions import ConfigError, DDPQueryError
-from pyddp.protocol import (
+from aioddp.exceptions import ConfigError, DDPQueryError
+from aioddp.protocol import (
     DDPHeader,
     SequenceCounter,
     build_header,

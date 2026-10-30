@@ -1,8 +1,8 @@
-# pyddp component spec: effects
+# aioddp component spec: effects
 
 Date: 2026-10-28
 Status: Draft
-Parent: `2026-10-28-pyddp-design.md`
+Parent: `2026-10-28-aioddp-design.md`
 Package: `effects/` (`__init__.py`, `base.py`, `solid.py`, `breathe.py`, `chase.py`, `twinkle.py`, `rainbow.py`, `palette.py`)
 
 ## Scope
