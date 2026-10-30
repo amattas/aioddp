@@ -81,7 +81,8 @@ def test_channel_map_reproduces_color_order(data_type: DataType, order: str) -> 
     ],
 )
 def test_byte_math(data_type: DataType, type_byte: int | None, channels: int, wire: int) -> None:
-    strip = _strip(data_type=data_type, color_order="RGBW"[:channels], data_type_byte=type_byte)
+    strip = _strip(data_type=data_type, data_type_byte=type_byte)  # color order defaults to the canonical one
+    assert strip.color_order == "RGBW"[:channels]
     segment = Segment("peak", start=260, length=40)
     assert strip.channels == channels
     assert strip.frame_size == 300 * channels

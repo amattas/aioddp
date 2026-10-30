@@ -18,7 +18,7 @@ class Strip:
     pixel_count: int
     port: int = DDP_PORT
     data_type: DataType = DataType.RGB
-    color_order: str = "RGB"
+    color_order: str = ""          # empty: the data type's canonical order, RGB or RGBW
     brightness_cap: float = DEFAULT_BRIGHTNESS_CAP
     gamma: float | None = DEFAULT_GAMMA
     destination_id: int = DESTINATION_DEFAULT
@@ -33,7 +33,7 @@ class Strip:
 | `pixel_count` | Integer, `1 <= pixel_count <= MAX_OFFSET // channels`. In practice the upper bound is never reached |
 | `port` | 1 to 65535 |
 | `data_type` | A `DataType` member. Strings are not coerced here; the CLI and hass-ddp map user input to the enum |
-| `color_order` | Upper-cased. Must be a permutation of `"RGB"` for `DataType.RGB` and of `"RGBW"` for `DataType.RGBW`. `"GRB"`, `"BRG"`, `"GRBW"` are all valid; `"RGB"` on an RGBW strip is an error, as is a repeated letter |
+| `color_order` | Empty (the default) means the canonical order for the data type. Otherwise upper-cased and must be a permutation of `"RGB"` for `DataType.RGB` and of `"RGBW"` for `DataType.RGBW`. `"GRB"`, `"BRG"`, `"GRBW"` are all valid; `"RGB"` on an RGBW strip is an error, as is a repeated letter |
 | `brightness_cap` | `0.0 < cap <= 1.0`. Zero is rejected because it makes every frame black and is never what a user meant |
 | `gamma` | `None` or `1.0` disables correction; otherwise `1.0 < gamma <= 4.0` |
 | `destination_id` | 0 to 255 |

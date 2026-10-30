@@ -58,7 +58,7 @@ class Strip:
     pixel_count: int
     port: int = DDP_PORT
     data_type: DataType = DataType.RGB
-    color_order: str = "RGB"
+    color_order: str = ""  # empty: the data type's canonical order, RGB or RGBW
     brightness_cap: float = DEFAULT_BRIGHTNESS_CAP
     gamma: float | None = DEFAULT_GAMMA
     destination_id: int = DESTINATION_DEFAULT
@@ -75,7 +75,7 @@ class Strip:
         if not _is_int(self.port) or not 1 <= self.port <= 0xFFFF:
             raise ConfigError(f"port must be an integer 1 to 65535, got {self.port!r}")
         canonical = self._canonical_order()
-        order = self.color_order.upper() if isinstance(self.color_order, str) else ""
+        order = (self.color_order or canonical).upper() if isinstance(self.color_order, str) else ""
         if sorted(order) != sorted(canonical):
             raise ConfigError(f"color_order must be a permutation of {canonical!r}, got {self.color_order!r}")
         object.__setattr__(self, "color_order", order)
