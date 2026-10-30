@@ -10,7 +10,7 @@ Shared fixtures, the benchmark gate, the test file map, and the public package s
 
 ## Tooling
 
-`pyproject.toml` mirrors pydmp: pytest, pytest-asyncio with `asyncio_mode = "auto"`, pytest-cov with `--cov --cov-report=term-missing`, ruff with `S101` ignored under `tests/`, black at 120, mypy strict on `src/`. Tests are typed too (mypy runs on `tests/` with `disallow_untyped_defs` relaxed). CI runs `pytest -q`, `ruff check`, `black --check`, `mypy`, `bandit -r src`, and `python -m build`, in that order, on 3.12 and the newest stable 3.x.
+`pyproject.toml` mirrors pydmp: pytest, pytest-asyncio with `asyncio_mode = "auto"`, pytest-cov with `--cov --cov-report=term-missing`, ruff (lint and format) at 120 with `S101` ignored under `tests/`, mypy strict on `src/`. Tests are typed too (mypy runs on `tests/` with `disallow_untyped_defs` relaxed). CI runs `pytest -q`, `ruff check`, `ruff format --check`, `mypy`, `bandit -r src`, and `python -m build`, in that order, on 3.12 and the newest stable 3.x.
 
 Coverage gates in CI: 80% total, and `protocol.py` and `color.py` at 95% enforced with `--cov-fail-under` plus a small script that reads `coverage.json` for the per-file floors (same approach as pydmp's verify job).
 
