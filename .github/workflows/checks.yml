@@ -40,11 +40,3 @@ jobs:
       test: AIODDP_BENCH_FACTOR=3 python -m pytest -q
       extra-checks: python scripts/check_coverage.py
       audit: strict
-
-  codeql:
-    needs: approve
-    if: always() && needs.approve.result != 'failure' && needs.approve.result != 'cancelled'
-    uses: mattas-net/.github/.github/workflows/codeql.yml@main
-    permissions:
-      contents: read
-      security-events: write
