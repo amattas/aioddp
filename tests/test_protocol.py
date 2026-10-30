@@ -7,8 +7,10 @@ from collections.abc import Callable
 
 import pytest
 
-from pyddp.const import (
+from aioddp.const import (
     DATA_TYPE_LEGACY,
+    DESTINATION_CONFIG,
+    DESTINATION_STATUS,
     FLAG_QUERY,
     FLAG_REPLY,
     FLAG_STORAGE,
@@ -18,14 +20,16 @@ from pyddp.const import (
     MAX_OFFSET,
     DataType,
 )
-from pyddp.exceptions import ConfigError
-from pyddp.protocol import (
+from aioddp.exceptions import ConfigError, DDPQueryError
+from aioddp.protocol import (
     DDPHeader,
     SequenceCounter,
     build_header,
     build_packets,
     build_push_packet,
+    build_query_packet,
     chunk_data,
+    decode_json_document,
 )
 from tests.conftest import UDPListener
 
@@ -62,6 +66,54 @@ def test_golden_headers(built: Callable[[], bytes], expected: str) -> None:
     assert decoded.version == 1
     assert decoded.push is bool(header[0] & 0x01)
     assert decoded.flags & (FLAG_TIMECODE | FLAG_STORAGE | FLAG_REPLY | FLAG_QUERY) == 0
+
+
+@pytest.mark.parametrize(
+    ("destination", "seq", "expected"),
+    [(DESTINATION_CONFIG, 1, "42 01 00 FA 00000000 0000"), (DESTINATION_STATUS, 2, "42 02 00 FB 00000000 0000")],
+    ids=["config", "status"],
+)
+def test_query_packet_golden_and_advances_sequence(destination: int, seq: int, expected: str) -> None:
+    counter = SequenceCounter(seq)
+    packet = build_query_packet(sequence=counter, destination=destination)
+    assert packet == _hex(expected)
+    assert counter.current == seq + 1
+    with pytest.raises(ConfigError, match="destination"):
+        build_query_packet(sequence=counter, destination=256)
+    assert counter.current == seq + 1
+
+
+@pytest.mark.parametrize(
+    ("flags", "query", "reply", "push"),
+    [(0x42, True, False, False), (0x44, False, True, False), (0x45, False, True, True), (0x41, False, False, True)],
+)
+def test_decode_flag_properties(flags: int, query: bool, reply: bool, push: bool) -> None:
+    header = DDPHeader.decode(bytes([flags, 1, 0, DESTINATION_CONFIG]) + bytes(6))
+    assert (header.query, header.reply, header.push) == (query, reply, push)
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        (b'{"a": 1}\x00\x00', {"a": 1}),
+        (b' \n{"a": [1]}\r\n', {"a": [1]}),
+        (b"\x00\x00", None),
+        (b"", None),
+        (b"{not json", DDPQueryError),
+        (b"\xff\xfe", DDPQueryError),
+        (b"[1, 2]", DDPQueryError),
+        (b'{"a": NaN}', DDPQueryError),
+        (b'{"a": [Infinity]}', DDPQueryError),
+        (b'{"a": -Infinity}', DDPQueryError),
+    ],
+    ids=["nul-padded", "whitespace", "only-nul", "empty", "bad-json", "bad-utf8", "not-object", "nan", "inf", "-inf"],
+)
+def test_decode_json_document(payload: bytes, expected: dict[str, object] | None | type[Exception]) -> None:
+    if isinstance(expected, type):
+        with pytest.raises(expected, match="destination 250"):
+            decode_json_document(payload, what="destination 250")
+    else:
+        assert decode_json_document(payload, what="destination 250") == expected
 
 
 def test_decode_rejects_short_input() -> None:

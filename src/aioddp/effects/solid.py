@@ -5,12 +5,13 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, ClassVar
 
-from pyddp.effects.base import BaseEffect, ParamSpec
+from aioddp.effects.base import BaseEffect, ParamSpec
 
 
 class Solid(BaseEffect):
     name: ClassVar[str] = "solid"
     description: ClassVar[str] = "One color on every pixel"
+    color_param: ClassVar[str | None] = "color"
     static: ClassVar[bool] = True
     params: ClassVar[Mapping[str, ParamSpec]] = {
         "color": ParamSpec("color", (255, 255, 255), "Fill color"),

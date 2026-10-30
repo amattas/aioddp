@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pyddp"
+name = "aioddp"
 version = "0.1.0"
 description = "Asyncio Python library for sending DDP pixel data to LED controllers"
 readme = "README.md"
@@ -36,7 +36,7 @@ dev = [
     "pre-commit==4.6.0",
     "build==1.5.0",
     "bandit==1.9.4",
-    # CI installs .[dev] only and the test suite imports pyddp.cli; keep in sync with [cli].
+    # CI installs .[dev] only and the test suite imports aioddp.cli; keep in sync with [cli].
     "click==8.4.1",
     "pyyaml==6.0.3",
     "rich==15.0.0",
@@ -53,14 +53,14 @@ docs = [
 ]
 
 [project.urls]
-Documentation = "https://amattas.github.io/pyddp/"
-Source = "https://github.com/amattas/pyddp"
+Documentation = "https://amattas.github.io/aioddp/"
+Source = "https://github.com/amattas/aioddp"
 
 [project.scripts]
-pyddp = "pyddp.cli:main"
+aioddp = "aioddp.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pyddp"]
+packages = ["src/aioddp"]
 
 [tool.black]
 line-length = 120
@@ -73,7 +73,7 @@ asyncio_default_fixture_loop_scope = "function"
 addopts = "--cov --cov-report=term-missing:skip-covered --cov-report=json"
 
 [tool.coverage.run]
-source = ["src/pyddp"]
+source = ["src/aioddp"]
 branch = true
 
 [tool.coverage.report]

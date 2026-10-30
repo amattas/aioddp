@@ -6,13 +6,14 @@ import math
 from collections.abc import Mapping
 from typing import Any, ClassVar
 
-from pyddp.effects.base import BaseEffect, ParamSpec
-from pyddp.exceptions import EffectError
+from aioddp.effects.base import BaseEffect, ParamSpec
+from aioddp.exceptions import EffectError
 
 
 class Chase(BaseEffect):
     name: ClassVar[str] = "chase"
     description: ClassVar[str] = "Theater chase; multiple colors move as blocks with the chase"
+    color_param: ClassVar[str | None] = "colors"
     params: ClassVar[Mapping[str, ParamSpec]] = {
         "colors": ParamSpec("colors", ((255, 255, 255),), "Colors of successive lit groups"),
         "speed": ParamSpec("float", 8.0, "Pixels per second; negative runs backwards", -100.0, 100.0),

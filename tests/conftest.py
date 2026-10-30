@@ -9,21 +9,53 @@ from typing import Any
 
 import pytest
 
-from pyddp.const import HEADER_SIZE
-from pyddp.protocol import DDPHeader
-from pyddp.sender import DDPSender
-from pyddp.strip import Strip
+from aioddp.const import DESTINATION_CONFIG, DESTINATION_STATUS, FLAG_PUSH, FLAG_REPLY, FLAG_VERSION_1, HEADER_SIZE
+from aioddp.protocol import DDPHeader
+from aioddp.sender import DDPSender
+from aioddp.strip import Strip
+
+# Config and status documents captured verbatim from a real controller (firmware 2.0).
+CONFIG_JSON = (
+    b'{"config":{"ip":"10.0.0.100","nm":"255.255.255.0","gw":"10.0.0.1","wcm":"client","ssid":"SkyDevices",'
+    b'"proto":0,"univ":0,"chip":17,"t0h":400,"t1h":800,"tbit":1250,"tres":250,"conv":13,'
+    b'"ports":[{"p":0,"ts":0,"l":80,"ss":1,"rev":1},{"p":1,"ts":0,"l":42,"ss":241,"rev":0},'
+    b'{"p":2,"ts":0,"l":0,"ss":367,"rev":0},{"p":3,"ts":0,"l":0,"ss":368,"rev":0},'
+    b'{"p":4,"ts":0,"l":0,"ss":369,"rev":0},{"p":5,"ts":0,"l":0,"ss":370,"rev":0},'
+    b'{"p":6,"ts":0,"l":0,"ss":371,"rev":0},{"p":7,"ts":0,"l":0,"ss":372,"rev":0}]}}'
+)
+STATUS_JSON = (
+    b'{"status":{"man":"3WL","mod":"NDBPRO","push":true,"mac":"5c:01:3b:39:1b:93","ver":"2.0","name":"ndbpro",'
+    b'"fuses":"ff","vin":"24.27","amp":"1.51","links":"04"}}'
+)
+
+Responder = Callable[[bytes, tuple[str | Any, int]], list[bytes]]
+
+
+def reply_packet(destination: int, payload: bytes, *, push: bool = True, offset: int = 0) -> bytes:
+    """A controller reply: version 1, REPLY flag, push on the last packet."""
+    flags = FLAG_VERSION_1 | FLAG_REPLY | (FLAG_PUSH if push else 0)
+    return bytes([flags, 0, 0, destination]) + offset.to_bytes(4, "big") + len(payload).to_bytes(2, "big") + payload
+
+
+def config_responder(packet: bytes, addr: tuple[str | Any, int]) -> list[bytes]:
+    """Answer config and status queries with the captured documents; ignore everything else."""
+    header = DDPHeader.decode(packet)
+    documents = {DESTINATION_CONFIG: CONFIG_JSON, DESTINATION_STATUS: STATUS_JSON}
+    if not header.query or header.destination not in documents:
+        return []
+    return [reply_packet(header.destination, documents[header.destination])]
 
 
 class UDPListener(asyncio.DatagramProtocol):
-    """Collects every datagram received on a loopback socket, in arrival order."""
+    """Collects every datagram received on a loopback socket, in arrival order; ``responder`` may answer."""
 
     host: str = "127.0.0.1"
 
-    def __init__(self) -> None:
+    def __init__(self, responder: Responder | None = None) -> None:
         self.port: int = 0
         self.packets: list[bytes] = []
         self.transport: asyncio.DatagramTransport | None = None
+        self.responder = responder
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         assert isinstance(transport, asyncio.DatagramTransport)
@@ -32,6 +64,9 @@ class UDPListener(asyncio.DatagramProtocol):
 
     def datagram_received(self, data: bytes, addr: tuple[str | Any, int]) -> None:
         self.packets.append(data)
+        if self.responder is not None and self.transport is not None:
+            for reply in self.responder(data, addr):
+                self.transport.sendto(reply, addr)
 
     async def wait_for(self, count: int, timeout: float = 1.0) -> list[bytes]:
         """Poll until at least ``count`` packets have arrived; fail the test on timeout."""

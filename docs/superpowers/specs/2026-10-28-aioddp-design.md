@@ -1,4 +1,4 @@
-# pyddp design spec
+# aioddp design spec
 
 Date: 2026-10-28
 Status: Draft
@@ -10,20 +10,21 @@ This document is the overview. Each module has a detail spec in this directory; 
 
 | Spec | Covers |
 |---|---|
-| `2026-10-28-pyddp-protocol.md` | `const.py`, `exceptions.py`, `protocol.py`: header, data type byte, chunking, sequence, golden vectors |
-| `2026-10-28-pyddp-strip-segment.md` | `strip.py`: `Strip` and `Segment` models and validation rules |
-| `2026-10-28-pyddp-color.md` | `color.py`: pipeline stages, LUT, cap enforcement, color helpers |
-| `2026-10-28-pyddp-sender.md` | `sender.py`: lifecycle, `send_frame`, shadow buffer, keepalive, stats, error policy |
-| `2026-10-28-pyddp-effects.md` | `effects/`: effect contract, param schema, registry, the six v1 effects |
-| `2026-10-28-pyddp-runner.md` | `runner.py`: `EffectRunner` loop, cancellation, `update`, `fade` |
-| `2026-10-28-pyddp-cli.md` | `cli.py`: commands, config file, exit codes |
-| `2026-10-28-pyddp-testing.md` | fixtures, benchmark gate, file map, public exports, hardware checklist |
+| `2026-10-28-aioddp-protocol.md` | `const.py`, `exceptions.py`, `protocol.py`: header, data type byte, chunking, sequence, golden vectors |
+| `2026-10-28-aioddp-strip-segment.md` | `strip.py`: `Strip` and `Segment` models and validation rules |
+| `2026-10-28-aioddp-color.md` | `color.py`: pipeline stages, LUT, cap enforcement, color helpers |
+| `2026-10-28-aioddp-sender.md` | `sender.py`: lifecycle, `send_frame`, shadow buffer, keepalive, stats, error policy |
+| `2026-10-28-aioddp-effects.md` | `effects/`: effect contract, param schema, registry, the six v1 effects |
+| `2026-10-28-aioddp-runner.md` | `runner.py`: `EffectRunner` loop, cancellation, `update`, `fade` |
+| `2026-10-28-aioddp-cli.md` | `cli.py`: commands, config file, exit codes |
+| `2026-10-29-aioddp-discovery.md` | `discovery.py` and `DDPSender.query`: DDP JSON query, config document parsing, `aioddp query` |
+| `2026-10-28-aioddp-testing.md` | fixtures, benchmark gate, file map, public exports, hardware checklist |
 
 ## Summary
 
-pyddp is a standalone, platform-agnostic, asyncio Python library that sends DDP (Distributed Display Protocol) pixel data to LED controllers and renders effects as pure functions. It is the protocol half of a pydmp / hass-dmp style pair: hass-ddp imports it and contains no protocol code. If bytes are being built anywhere else, that code belongs here.
+aioddp is a standalone, platform-agnostic, asyncio Python library that sends DDP (Distributed Display Protocol) pixel data to LED controllers and renders effects as pure functions. It is the protocol half of a pydmp / hass-dmp style pair: hass-ddp imports it and contains no protocol code. If bytes are being built anywhere else, that code belongs here.
 
-First target is a Minleon NDB-Pro driving Rainmin RGB+ pixels on a roofline, but nothing in the library is Minleon-specific.
+First target is a Minleon NDB-Pro driving Rainmin RGB+ pixels on a roofline, but aioddp knows no vendor and has no HTTP client. Vendor control (the NDB-Pro's built-in effects, its HTTP-served layout) lives in the separate `pyminleon` library.
 
 ### What this is NOT
 
@@ -49,7 +50,7 @@ UDP to port 4048. A 10-byte header followed by raw pixel bytes. A frame larger t
 
 | Bytes | Field | What we send |
 |---|---|---|
-| 0 | Flags | Version 1 (`0x40`), plus push (`0x01`) on the last packet of a frame. No timecode, storage, query, or reply bits |
+| 0 | Flags | Version 1 (`0x40`), plus push (`0x01`) on the last packet of a frame. Query (`0x02`) only on a layout read; never timecode or storage |
 | 1 | Sequence | Low 4 bits, cycling 1 to 15; 0 means unused |
 | 2 | Data type | `0x0B` for 8-bit RGB, `0x1B` for 8-bit RGBW. Configurable, since some receivers expect legacy `0x01` or ignore the field |
 | 3 | Destination ID | 1 (default output device) |
@@ -60,12 +61,13 @@ UDP to port 4048. A 10-byte header followed by raw pixel bytes. A frame larger t
 - Max payload per packet: 1440 bytes (480 RGB pixels, 360 RGBW). Larger frames go out as several packets with increasing offsets, push set only on the last.
 - No priority, no acknowledgement. Two senders on one controller fight; only one source talks at a time.
 - Segments are byte ranges. A segment can be sent as its own packet(s) at its own offset without merging frames. To latch several segments together, send them without push and push once at the end.
+- The protocol's optional read side (query flag to destination 250 for JSON config, 251 for JSON status) is the only way to learn a controller's layout. It is supported, best effort, and some controllers publish the same JSON over HTTP instead; fetching that is out of scope here (`pyminleon` does it and passes the JSON to `parse_config`); see the discovery spec.
 
 ## Architecture
 
 ```
-pyddp/
-├── src/pyddp/
+aioddp/
+├── src/aioddp/
 │   ├── __init__.py       # Public exports
 │   ├── protocol.py       # Header encode/decode, flags, data types, chunking
 │   ├── sender.py         # DDPSender: async UDP endpoint, sequence, send_frame, keepalive
@@ -73,9 +75,10 @@ pyddp/
 │   ├── color.py          # Gamma, brightness scaling, Kelvin to RGB, brightness cap, color order
 │   ├── effects/          # base.py (contract, params), __init__.py (registry), one module per effect
 │   ├── runner.py         # EffectRunner: async task rendering one segment at a target fps; fade()
+│   ├── discovery.py      # ControllerLayout from a DDP JSON config query; parse_config for documents fetched elsewhere
 │   ├── const.py          # Port, header sizes, flag bits, data type codes, defaults
-│   ├── exceptions.py     # PyDDPError hierarchy
-│   └── cli.py            # pyddp command (click + rich), [cli] extra
+│   ├── exceptions.py     # DDPError hierarchy
+│   └── cli.py            # aioddp command (click + rich), [cli] extra
 └── tests/
 ```
 
@@ -86,11 +89,12 @@ pyddp/
 - `DDPSender(strip, keepalive_interval=None)`: async context manager. `send_frame(pixels, segment=None, brightness=1.0, push=True)`, `fill(segment, color, brightness)`, `off(segment)`, `push()`, `close()`. Owns the sequence counter, a shadow buffer of the last wire bytes, and the optional keepalive task. There is no raw-bytes send: `send_frame` takes canonical RGB(W) pixels and always runs the color pipeline, which is how the cap is enforced
 - `EffectRunner(sender, segment, effect, fps=30, params=None, brightness=1.0, seed=None)`: `start()`, `stop()`, `update(params=, brightness=, fps=)`, `wait()`; cancels cleanly and never leaves an orphaned task. `fade(sender, segment, start, end, duration)` is the transition helper
 - `Effect` protocol: `render(length: int, t: float, params: Mapping, seed: int) -> bytes` returning `length * 3` canonical RGB bytes, plus a declared `params` schema with defaults and a `static` flag
+- `discover(host)`: `ControllerLayout` (pixel count, one `OutputInfo` per output, channels, identity) from a DDP query, or `None`; `parse_config` builds the same layout from a document fetched by other means; `layout.segments()` gives one `Segment` per active output. `DDPSender.query(destination)` is the underlying read
 
 ### Public API sketch
 
 ```python
-from pyddp import DDPSender, EffectRunner, Segment, Strip
+from aioddp import DDPSender, EffectRunner, Segment, Strip
 
 strip = Strip(host="10.0.40.20", pixel_count=300, brightness_cap=0.6)
 roof = Segment("roofline", start=0, length=260)
@@ -147,15 +151,16 @@ Effects must render a few hundred pixels in well under 1 ms. A benchmark test en
 
 Installed via the `[cli]` extra (click, rich, pyyaml), same pattern as pydmp. Optional `config.yaml` (gitignored) for host and pixel count.
 
-- `pyddp fill <host> --count N --color ff8800 [--brightness 0.5] [--cap 0.6]`
-- `pyddp effect <host> --count N --effect chase --fps 30 [--param speed=1.0]`
-- `pyddp off <host> --count N`
-- `pyddp test <host> --count N`: walks a single lit pixel down the string to confirm pixel count, channel order, and segment boundaries. First thing to run against real hardware
-- `pyddp effects`: list effects and their params
+- `aioddp fill <host> --count N --color ff8800 [--brightness 0.5] [--cap 0.6]`
+- `aioddp effect <host> --count N --effect chase --fps 30 [--param speed=1.0]`
+- `aioddp off <host> --count N`
+- `aioddp test <host> --count N`: walks a single lit pixel down the string to confirm pixel count, channel order, and segment boundaries. First thing to run against real hardware
+- `aioddp query <host>`: asks the controller for its output layout and prints a ready-to-paste `config.yaml`; run it before `test` on a controller that answers
+- `aioddp effects`: list effects and their params
 
 ## Error handling and logging
 
-- Exception hierarchy rooted at `PyDDPError`: `ConfigError`, `DDPSendError`, `EffectError`
+- Exception hierarchy rooted at `DDPError`: `ConfigError`, `DDPSendError`, `EffectError`, `DDPQueryError`
 - Input validation: pixel count > 0, segments in range, brightness and cap in 0.0 to 1.0, fps in 1 to 60, data type in the supported set
 - Standard `logging`; never log full frames above DEBUG
 
@@ -170,13 +175,13 @@ Installed via the `[cli]` extra (click, rich, pyyaml), same pattern as pydmp. Op
 
 ## Repo conventions (mirror pydmp)
 
-- `src/pyddp` layout, hatchling build backend
+- `src/aioddp` layout, hatchling build backend
 - `requires-python = ">=3.12"`, Apache-2.0 license, author Anthony Mattas
 - `dependencies = []`; dev, cli, docs extras with exact pins
 - black (line length 120), ruff (`E, F, I, B, UP, SIM, S`, `S101` ignored in tests), mypy strict pinned to 3.12, bandit, pre-commit
 - `.editorconfig`, `.gitignore` copied from pydmp (adds `config.yaml`)
 - `CLAUDE.md` and `AGENTS.md` at the root, same structure as pydmp's
-- Docs: Zensical + mike, published to `https://amattas.github.io/pyddp/`, API reference generated with pydoc-markdown, `scripts/publish_versioned_docs.py` copied from pydmp
+- Docs: Zensical + mike, published to `https://amattas.github.io/aioddp/`, API reference generated with pydoc-markdown, `scripts/publish_versioned_docs.py` copied from pydmp
 - GitHub: `ci.yml`, `docs.yml`, `release.yml` manual-only; release from an `X.Y.Z` tag on main, PyPI trusted publishing via the `pypi` environment with a reviewer gate. `CODEOWNERS`, `dependabot.yml`, issue templates (swap `panel_compatibility` for `controller_compatibility`)
 - `docs/compatibility.md` lists controllers tested and what data type byte and timeout behavior each one has
 
@@ -190,11 +195,12 @@ Maintenance-only after 0.1.0 until school is done.
 
 ## Open questions
 
-- [ ] Is `pyddp` free on PyPI? If not, pick a name before scaffolding
+- [ ] Is `aioddp` free on PyPI? If not, pick a name before scaffolding
 - [ ] Does the NDB-Pro honor the data type byte, or accept anything?
-- [ ] Does the NDB-Pro treat DDP offsets as one flat buffer across its 8 outputs, or per output?
+- [x] Does the NDB-Pro treat DDP offsets as one flat buffer across its 8 outputs, or per output? One flat buffer: each output has a 1-based starting slot in its config document (output 2 at slot 241 after 80 three-channel pixels on output 1). Answered 2026-10-29 by `aioddp query`; see `docs/compatibility.md`
+- [x] Can the layout be discovered? Not over DDP on the NDB-Pro (no reply to queries), but it serves the DDP JSON config document over HTTP, which `pyminleon` reads and hands to `parse_config`; `discover()` is the DDP query alone
 - [ ] What does the NDB-Pro do when DDP stops: hold, blank, or fall back to built-in effects, and after how long? Decides the keepalive default
 - [ ] Does the NDB-Pro apply its own gamma? Decides whether ours is on by default
 - [ ] Is a sync wrapper worth it (pydmp has one), or is the CLI enough for scripting? The sender spec recommends dropping it from 0.1.0; `sender_sync.py` is out of the tree until someone asks
 
-The first five are answered by the hardware checklist at the end of the testing spec and recorded in `docs/compatibility.md`.
+The remaining hardware questions are answered by the checklist at the end of the testing spec and recorded in `docs/compatibility.md`.

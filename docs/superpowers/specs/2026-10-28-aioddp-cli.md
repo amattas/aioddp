@@ -1,9 +1,9 @@
-# pyddp component spec: CLI
+# aioddp component spec: CLI
 
 Date: 2026-10-28
 Status: Draft
-Parent: `2026-10-28-pyddp-design.md`
-Module: `cli.py`, installed as `pyddp` via the `[cli]` extra (click, rich, pyyaml)
+Parent: `2026-10-28-aioddp-design.md`
+Module: `cli.py`, installed as `aioddp` via the `[cli]` extra (click, rich, pyyaml)
 
 ## Scope
 
@@ -12,7 +12,7 @@ Bench tool for a controller with no Home Assistant in the loop. It is the first 
 ## Invocation
 
 ```
-pyddp [GLOBAL OPTIONS] COMMAND [ARGS]
+aioddp [GLOBAL OPTIONS] COMMAND [ARGS]
 ```
 
 ### Global options
@@ -21,7 +21,7 @@ pyddp [GLOBAL OPTIONS] COMMAND [ARGS]
 |---|---|---|
 | `--config PATH` | `./config.yaml` if it exists | YAML, see below. Missing file is fine unless `--config` was given explicitly |
 | `--host HOST` | from config | Required somewhere for every command but `effects` and `version` |
-| `--count N` | from config | Pixel count |
+| `--count N` | from config | Pixel count; required for every command that sends pixels, not for `query` |
 | `--port N` | 4048 | |
 | `--type rgb\|rgbw` | `rgb` | |
 | `--order ORDER` | `RGB`, or `RGBW` with `--type rgbw` | Color order string |
@@ -57,7 +57,7 @@ Gitignored. Unknown keys are an error so a typo does not silently fall back to a
 ### fill
 
 ```
-pyddp fill --color ff8800 [--brightness 1.0] [--segment NAME]
+aioddp fill --color ff8800 [--brightness 1.0] [--segment NAME]
 ```
 
 One `fill`, then exit. `--color` accepts anything `parse_color` does, plus `--kelvin N` as an alternative to `--color`.
@@ -65,7 +65,7 @@ One `fill`, then exit. `--color` accepts anything `parse_color` does, plus `--ke
 ### off
 
 ```
-pyddp off [--segment NAME]
+aioddp off [--segment NAME]
 ```
 
 One `off`, exit.
@@ -73,7 +73,7 @@ One `off`, exit.
 ### effect
 
 ```
-pyddp effect NAME [--fps 30] [--param key=value ...] [--brightness 1.0] [--seed N] [--segment NAME] [--duration SECONDS] [--keep]
+aioddp effect NAME [--fps 30] [--param key=value ...] [--brightness 1.0] [--seed N] [--segment NAME] [--duration SECONDS] [--keep]
 ```
 
 Runs an `EffectRunner` until Ctrl-C or `--duration`. On exit the segment is blanked unless `--keep`; a bench session that leaves the roof lit after Ctrl-C is a surprise, so blanking is the default here even though the library never blanks on its own. Static effects send once and exit immediately (and are not blanked, since the point was to leave them up). Params are validated before the socket opens; errors list the effect's params and defaults. Ctrl-C is handled by cancelling the runner and awaiting it, so the exit is clean and the final `off` always goes out.
@@ -83,7 +83,7 @@ A `rich` status line shows frames rendered, dropped, packets, send errors, and m
 ### test
 
 ```
-pyddp test [--delay 0.05] [--hold 3] [--color ffffff] [--segment NAME] [--loop]
+aioddp test [--delay 0.05] [--hold 3] [--color ffffff] [--segment NAME] [--loop]
 ```
 
 The hardware bring-up command. Phases, each announced on stderr:
@@ -94,32 +94,40 @@ The hardware bring-up command. Phases, each announced on stderr:
 
 `--loop` repeats phase 2 until Ctrl-C. Exit blanks the target.
 
+### query
+
+```
+aioddp --host HOST query [--timeout 1.0] [--json]
+```
+
+Asks the controller for its layout: a DDP query to the JSON config and status destinations (no HTTP; controllers that only serve the document over HTTP are read by `pyminleon`). Prints the controller identity, one row per active output (pixels, start pixel, whether the controller reverses it), the total, and a `config.yaml` snippet with one segment per output. Needs no `--count`; it is how you find one. No answer exits 2. Details in `2026-10-29-aioddp-discovery.md`.
+
 ### effects
 
 ```
-pyddp effects [--json]
+aioddp effects [--json]
 ```
 
 Table of effect name, static flag, description, and each param with kind, default, and range. `--json` emits the `list_effects()` structure. Needs no host.
 
 ### version
 
-Prints `pyddp <version>` from `importlib.metadata`.
+Prints `aioddp <version>` from `importlib.metadata`.
 
 ## Exit codes
 
 | Code | Meaning |
 |---|---|
 | 0 | Done |
-| 1 | `ConfigError`, `EffectError`, usage error (click's default of 2 is remapped), bad config file |
-| 2 | `DDPSendError` (could not open the socket or resolve the host) |
+| 1 | `ConfigError`, `EffectError`, `DDPQueryError`, usage error (click's default of 2 is remapped), bad config file |
+| 2 | `DDPSendError` (could not open the socket or resolve the host); `query` with no answer |
 | 130 | Ctrl-C (after clean shutdown) |
 
 Tracebacks never print without `-vv`.
 
 ## Structure
 
-`cli.py` is one module: a click group, a `_build_strip(ctx)` helper, a `_resolve_segment(ctx, strip, name)` helper, one function per command, and `main()`. Each command body is a small `async def _run(...)` executed with `asyncio.run`. Importing `pyddp.cli` without the extra installed raises `ImportError` with an install hint; `pyddp` itself never imports `cli`.
+`cli.py` is one module: a click group, a `_build_strip(ctx)` helper, a `_resolve_segment(ctx, strip, name)` helper, one function per command, and `main()`. Each command body is a small `async def _run(...)` executed with `asyncio.run`. Importing `aioddp.cli` without the extra installed raises `ImportError` with an install hint; `aioddp` itself never imports `cli`.
 
 ## Tests (`tests/test_cli.py`)
 
@@ -132,4 +140,5 @@ Through `click.testing.CliRunner` with the `udp_listener` fixture as the host an
 - `effect` with a bad param exits 1 and the message names the param
 - `test --delay 0.001` on 5 pixels: order phase packets then 5 walk packets then the ends frame then blank
 - `effects --json` round-trips through `json.loads` and lists all six
+- `query` with host only against the listener's responder; `--json`; no answer exits 2; unusable-layout warnings
 - `version` prints the metadata version

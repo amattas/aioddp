@@ -1,8 +1,8 @@
-# pyddp component spec: effects
+# aioddp component spec: effects
 
 Date: 2026-10-28
 Status: Draft
-Parent: `2026-10-28-pyddp-design.md`
+Parent: `2026-10-28-aioddp-design.md`
 Package: `effects/` (`__init__.py`, `base.py`, `solid.py`, `breathe.py`, `chase.py`, `twinkle.py`, `rainbow.py`, `palette.py`)
 
 ## Scope
@@ -49,8 +49,17 @@ Merges defaults, rejects unknown keys, coerces and range-checks by kind. `color`
 ```python
 EFFECTS: Mapping[str, type[Effect]]   # explicit dict, no import-time magic
 def get_effect(name: str) -> type[Effect]      # EffectError on unknown name, message lists valid names
-def list_effects() -> list[EffectInfo]         # name, description, static, params; used by CLI and hass-ddp effect_list
+def list_effects() -> list[EffectInfo]         # name, description, static, params, color_param; used by CLI and hass-ddp effect_list
 ```
+
+`color_param` names the one parameter a single user-picked color drives (`BaseEffect` defaults it to `None`; effects that do not subclass it are read with `getattr`, so the `Effect` protocol does not require it). `EffectInfo.color_params(rgb)` returns the params that apply that color: `{color_param: rgb}` for a `color` param, `{color_param: [rgb]}` for a `colors` param, `{}` when there is none. hass-ddp uses it to map Home Assistant's `rgb_color` onto whatever effect is running, so the integration holds no per-effect knowledge.
+
+| Effect | `color_param` |
+|---|---|
+| solid, breathe | `color` |
+| chase | `colors` |
+| twinkle | `sparkle_color` |
+| rainbow, palette | none |
 
 Names are lowercase ASCII: `solid`, `breathe`, `chase`, `twinkle`, `rainbow`, `palette`. hass-ddp uses these strings verbatim as the HA `effect` values, so renaming one is a breaking change.
 

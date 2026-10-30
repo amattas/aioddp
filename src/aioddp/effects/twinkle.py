@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from functools import lru_cache
 from typing import Any, ClassVar
 
-from pyddp.effects.base import BaseEffect, ParamSpec
+from aioddp.effects.base import BaseEffect, ParamSpec
 
 
 @lru_cache(maxsize=32)
@@ -33,6 +33,7 @@ def _tables(length: int, seed: int) -> tuple[tuple[float, ...], tuple[int, ...],
 class Twinkle(BaseEffect):
     name: ClassVar[str] = "twinkle"
     description: ClassVar[str] = "Random pixels sparkle and fade over a base color"
+    color_param: ClassVar[str | None] = "sparkle_color"
     params: ClassVar[Mapping[str, ParamSpec]] = {
         "base_color": ParamSpec("color", (0, 0, 0), "Color of resting pixels"),
         "sparkle_color": ParamSpec("color", (255, 255, 255), "Color at the peak of a twinkle"),

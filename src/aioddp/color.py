@@ -11,8 +11,8 @@ from collections.abc import Sequence
 from functools import lru_cache
 from typing import cast
 
-from pyddp.exceptions import ConfigError
-from pyddp.strip import Strip
+from aioddp.exceptions import ConfigError
+from aioddp.strip import Strip
 
 RGB = tuple[int, int, int]
 RGBW = tuple[int, int, int, int]

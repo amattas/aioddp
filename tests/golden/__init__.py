@@ -12,8 +12,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from pyddp.effects import EFFECTS
-from pyddp.effects.base import validate_params
+from aioddp.effects import EFFECTS
+from aioddp.effects.base import validate_params
 
 GOLDEN_DIR = Path(__file__).parent
 LENGTH = 300  # a typical roofline run; long enough that every effect's spatial pattern repeats

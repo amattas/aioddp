@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import errno
+import json
 import logging
 import socket
 from collections.abc import Awaitable, Callable
@@ -11,12 +12,12 @@ from typing import Any
 
 import pytest
 
-from pyddp.const import HEADER_SIZE, MAX_DATA_LEN, DataType
-from pyddp.exceptions import ConfigError, DDPSendError
-from pyddp.protocol import DDPHeader
-from pyddp.sender import DDPSender
-from pyddp.strip import Segment, Strip
-from tests.conftest import UDPListener
+from aioddp.const import DESTINATION_CONFIG, DESTINATION_STATUS, HEADER_SIZE, MAX_DATA_LEN, DataType
+from aioddp.exceptions import ConfigError, DDPQueryError, DDPSendError
+from aioddp.protocol import DDPHeader
+from aioddp.sender import DDPSender
+from aioddp.strip import Segment, Strip
+from tests.conftest import CONFIG_JSON, STATUS_JSON, UDPListener, config_responder, reply_packet
 
 MakeStrip = Callable[..., Strip]
 
@@ -28,7 +29,7 @@ def _header(*, flags: int, seq: int, data_type: int, offset: int, length: int, d
 async def test_fill_full_strip_sends_golden_capped_reordered_packet(
     udp_listener: UDPListener, make_strip: MakeStrip, caplog: pytest.LogCaptureFixture
 ) -> None:
-    caplog.set_level(logging.DEBUG, logger="pyddp.sender")
+    caplog.set_level(logging.DEBUG, logger="aioddp.sender")
     strip = make_strip(color_order="GRB", brightness_cap=0.5)
     async with DDPSender(strip) as ddp:
         await ddp.fill(None, (200, 100, 50))
@@ -160,6 +161,22 @@ async def test_keepalive_resends_shadow_only_after_idle(udp_listener: UDPListene
     assert (stats.keepalives_sent, stats.frames_sent, stats.packets_sent) == (1, 6, 7)
 
 
+async def test_release_pauses_keepalive_until_next_frame(udp_listener: UDPListener, make_strip: MakeStrip) -> None:
+    async with DDPSender(make_strip(), keepalive_interval=0.5) as ddp:
+        await ddp.fill(None, (1, 2, 3))
+        ddp.release()  # sends nothing, keeps the socket
+        await asyncio.sleep(1.2)  # two keepalive ticks while released: silent
+        assert len(udp_listener.packets) == 1
+        assert (ddp.is_open, ddp.stats.keepalives_sent) == (True, 0)
+
+        await ddp.off()  # the next frame resumes keepalive
+        packets = await udp_listener.wait_for(3, timeout=1.5)
+        stats = ddp.stats
+
+    assert packets[2][HEADER_SIZE:] == packets[1][HEADER_SIZE:] == bytes(30)
+    assert (stats.keepalives_sent, stats.frames_sent) == (1, 2)
+
+
 @pytest.mark.parametrize("interval", [0.0, 0.49, -1.0])
 def test_keepalive_interval_below_floor_raises_config_error(make_strip: MakeStrip, interval: float) -> None:
     with pytest.raises(ConfigError, match="keepalive_interval"):
@@ -170,11 +187,11 @@ async def test_close_cancels_keepalive_is_idempotent_and_blocks_sends(make_strip
     ddp = DDPSender(make_strip(), keepalive_interval=0.5)
     await ddp.open()
     await ddp.open()  # no-op: still one keepalive task
-    assert [t.get_name() for t in asyncio.all_tasks()].count("pyddp-keepalive-127.0.0.1") == 1
+    assert [t.get_name() for t in asyncio.all_tasks()].count("aioddp-keepalive-127.0.0.1") == 1
 
     await ddp.close()
     assert not ddp.is_open
-    assert all(not t.get_name().startswith("pyddp-keepalive") for t in asyncio.all_tasks())
+    assert all(not t.get_name().startswith("aioddp-keepalive") for t in asyncio.all_tasks())
     await ddp.close()
     assert not ddp.is_open
 
@@ -196,7 +213,7 @@ async def test_close_from_cancelled_task_still_closes_socket(make_strip: MakeStr
 
     assert not ddp.is_open
     assert transport.is_closing()
-    assert all(not t.get_name().startswith("pyddp-keepalive") for t in asyncio.all_tasks())
+    assert all(not t.get_name().startswith("aioddp-keepalive") for t in asyncio.all_tasks())
 
 
 async def test_concurrent_open_creates_one_socket_and_keepalive(
@@ -214,19 +231,20 @@ async def test_concurrent_open_creates_one_socket_and_keepalive(
     monkeypatch.setattr(loop, "create_datagram_endpoint", counting_create)
     ddp = DDPSender(make_strip(), keepalive_interval=0.5)
     await asyncio.gather(ddp.open(), ddp.open())
-    assert [t.get_name() for t in asyncio.all_tasks()].count("pyddp-keepalive-127.0.0.1") == 1
+    assert [t.get_name() for t in asyncio.all_tasks()].count("aioddp-keepalive-127.0.0.1") == 1
     await ddp.close()
 
     assert len(transports) == 1
     assert all(t.is_closing() for t in transports)
-    assert all(not t.get_name().startswith("pyddp-keepalive") for t in asyncio.all_tasks())
+    assert all(not t.get_name().startswith("aioddp-keepalive") for t in asyncio.all_tasks())
 
 
-_OPS: dict[str, Callable[[DDPSender], Awaitable[None]]] = {
+_OPS: dict[str, Callable[[DDPSender], Awaitable[object]]] = {
     "send_frame": lambda d: d.send_frame(bytes(30)),
     "fill": lambda d: d.fill(None, (1, 2, 3)),
     "off": lambda d: d.off(),
     "push": lambda d: d.push(),
+    "query": lambda d: d.query(timeout=0.1),
 }
 
 
@@ -246,7 +264,7 @@ async def test_operations_when_not_open_raise_send_error(
 @pytest.mark.parametrize(
     ("host", "bind_host", "cause"),
     [
-        ("pyddp-test.invalid", None, OSError),
+        ("aioddp-test.invalid", None, OSError),
         ("127.0.0.1", "192.0.2.1", OSError),
         ("a" * 64 + ".invalid", None, UnicodeError),
     ],
@@ -289,7 +307,7 @@ async def test_error_received_warns_once_per_errno_then_debug(
 ) -> None:
     protocol = sender._protocol  # fault injection: the OS decides when ICMP errors arrive
     assert protocol is not None
-    caplog.set_level(logging.DEBUG, logger="pyddp.sender")
+    caplog.set_level(logging.DEBUG, logger="aioddp.sender")
     for code in (errno.ECONNREFUSED, errno.ECONNREFUSED, errno.EHOSTUNREACH):
         protocol.error_received(OSError(code, "boom"))
 
@@ -328,3 +346,116 @@ async def test_connection_lost_marks_sender_closed(make_strip: MakeStrip, caplog
     with pytest.raises(DDPSendError):
         await ddp.fill(None, (1, 1, 1))
     await ddp.close()  # still reaps the keepalive task
+
+
+QUERY_CONFIG_PACKET = bytes.fromhex("42 01 00 FA 00000000 0000".replace(" ", ""))
+
+
+@pytest.mark.parametrize(
+    ("destination", "document"),
+    [(DESTINATION_CONFIG, CONFIG_JSON), (DESTINATION_STATUS, STATUS_JSON)],
+    ids=["config", "status"],
+)
+async def test_query_returns_reply_document_and_counts_it(
+    udp_listener: UDPListener, sender: DDPSender, destination: int, document: bytes
+) -> None:
+    udp_listener.responder = config_responder
+    assert await sender.query(destination) == json.loads(document)
+    (packet,) = udp_listener.packets
+    assert packet == bytes([0x42, 0x01, 0x00, destination]) + bytes(6)
+    assert (sender.stats.replies_received, sender.stats.packets_sent) == (1, 1)
+
+
+async def test_query_assembles_multi_packet_reply_by_offset_and_ignores_strays(
+    udp_listener: UDPListener, sender: DDPSender
+) -> None:
+    third = len(CONFIG_JSON) // 3
+    chunks = [CONFIG_JSON[i * third : (i + 1) * third if i < 2 else None] for i in range(3)]
+    stray_data = _header(flags=0x41, seq=1, data_type=0x0B, offset=0, length=3, dest=DESTINATION_CONFIG) + b"abc"
+    udp_listener.responder = lambda packet, addr: [
+        b"\x44",  # shorter than a header
+        stray_data,  # no REPLY flag
+        reply_packet(DESTINATION_STATUS, STATUS_JSON),  # no query pending for this destination
+        reply_packet(DESTINATION_CONFIG, chunks[1], push=False, offset=third),  # arrives before offset 0
+        reply_packet(DESTINATION_CONFIG, chunks[0], push=False),
+        reply_packet(DESTINATION_CONFIG, chunks[1], push=False, offset=third),  # duplicate
+        reply_packet(DESTINATION_CONFIG, chunks[2] + b"\x00\x00", offset=2 * third),
+    ]
+    assert await sender.query() == json.loads(CONFIG_JSON)
+    assert sender.stats.replies_received == 1
+
+
+async def test_query_reply_with_gap_raises_query_error(udp_listener: UDPListener, sender: DDPSender) -> None:
+    udp_listener.responder = lambda packet, addr: [
+        reply_packet(DESTINATION_CONFIG, CONFIG_JSON[:100], push=False),
+        reply_packet(DESTINATION_CONFIG, CONFIG_JSON[200:], offset=200),  # push before offset 100 arrives
+    ]
+    with pytest.raises(DDPQueryError, match="destination 250 is incomplete: missing bytes at offset 100"):
+        await sender.query()
+    assert (sender._pending, sender.stats.replies_received) == ({}, 0)
+
+
+async def test_query_without_answer_times_out_to_none_then_works_again(
+    udp_listener: UDPListener, sender: DDPSender
+) -> None:
+    assert await sender.query(timeout=0.05) is None
+    assert sender._pending == {}
+    udp_listener.responder = config_responder
+    assert await sender.query() == json.loads(CONFIG_JSON)
+    assert [DDPHeader.decode(p).sequence for p in udp_listener.packets] == [1, 2]
+    assert udp_listener.packets[0] == QUERY_CONFIG_PACKET
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [(b"", None), (b"{oops", DDPQueryError), (b"[1]", DDPQueryError)],
+    ids=["not-supported", "bad-json", "not-object"],
+)
+async def test_query_reply_payload_handling(
+    udp_listener: UDPListener, sender: DDPSender, payload: bytes, expected: type[Exception] | None
+) -> None:
+    udp_listener.responder = lambda packet, addr: [reply_packet(DESTINATION_CONFIG, payload)]
+    if expected is None:
+        assert await sender.query() is None
+    else:
+        with pytest.raises(expected, match="destination 250"):
+            await sender.query()
+    assert sender._pending == {}
+
+
+@pytest.mark.parametrize("timeout", [0.0, -1.0, float("inf"), float("nan")])
+async def test_query_rejects_bad_timeout(sender: DDPSender, timeout: float) -> None:
+    with pytest.raises(ConfigError, match="timeout"):
+        await sender.query(timeout=timeout)
+
+
+async def test_concurrent_query_same_destination_raises_other_destination_ok(
+    udp_listener: UDPListener, sender: DDPSender
+) -> None:
+    udp_listener.responder = lambda packet, addr: (
+        config_responder(packet, addr) if packet[3] == DESTINATION_STATUS else []
+    )
+    first = asyncio.create_task(sender.query(timeout=0.2))
+    await asyncio.sleep(0)
+    with pytest.raises(RuntimeError, match="250"):
+        await sender.query(timeout=0.2)
+    status = await sender.query(DESTINATION_STATUS, timeout=0.2)
+    assert status == json.loads(STATUS_JSON)
+    assert await first is None
+
+
+@pytest.mark.parametrize("how", ["close", "connection_lost"])
+async def test_closing_fails_pending_query_with_send_error(sender: DDPSender, how: str) -> None:
+    task = asyncio.create_task(sender.query(timeout=5.0))
+    await asyncio.sleep(0.01)
+    if how == "close":
+        await sender.close()
+    else:
+        protocol, transport = sender._protocol, sender._transport
+        assert protocol is not None
+        assert transport is not None
+        protocol.connection_lost(None)
+        transport.close()  # the OS would already have torn the socket down
+    with pytest.raises(DDPSendError, match="sender closed"):
+        await task
+    assert sender._pending == {}

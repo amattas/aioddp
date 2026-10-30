@@ -1,8 +1,8 @@
-# pyddp component spec: protocol, constants, exceptions
+# aioddp component spec: protocol, constants, exceptions
 
 Date: 2026-10-28
 Status: Draft
-Parent: `2026-10-28-pyddp-design.md`
+Parent: `2026-10-28-aioddp-design.md`
 Modules: `const.py`, `exceptions.py`, `protocol.py`
 
 ## Scope
@@ -31,6 +31,9 @@ SEQUENCE_MAX = 15            # low 4 bits; 0 means "sequence unused"
 
 DESTINATION_DEFAULT = 1      # default output device
 DESTINATION_ALL = 255
+DESTINATION_CONTROL = 246    # JSON control
+DESTINATION_CONFIG = 250     # JSON config, read by query
+DESTINATION_STATUS = 251     # JSON status, read by query
 
 DEFAULT_FPS = 30
 MAX_FPS = 60
@@ -38,7 +41,7 @@ DEFAULT_GAMMA = 2.2
 DEFAULT_BRIGHTNESS_CAP = 1.0
 ```
 
-The timecode, storage, reply, and query bits are named so the decoder can report them and tests can assert they are never set. The sender never sets them in v1.
+The timecode and storage bits are named so the decoder can report them and tests can assert they are never set; the sender never sets them. The query bit is set only by `build_query_packet`, and the reply bit only ever arrives from a controller (see the discovery spec).
 
 ### DataType
 
@@ -60,10 +63,11 @@ The DDP data type byte is `C R TTT SSS`: bit 7 customer-defined, bit 6 reserved,
 ## exceptions.py
 
 ```python
-class PyDDPError(Exception): ...
-class ConfigError(PyDDPError, ValueError): ...   # bad strip, segment, params, or color
-class DDPSendError(PyDDPError): ...               # socket could not be opened or sender is closed
-class EffectError(PyDDPError): ...                # unknown effect, bad params, or render failure
+class DDPError(Exception): ...
+class ConfigError(DDPError, ValueError): ...   # bad strip, segment, params, or color
+class DDPSendError(DDPError): ...               # socket could not be opened or sender is closed
+class EffectError(DDPError): ...                # unknown effect, bad params, or render failure
+class DDPQueryError(DDPError): ...              # a controller answered a query or config request with something unusable
 ```
 
 `ConfigError` also subclasses `ValueError` so callers that validate user input generically still catch it. Transient UDP send errors are not exceptions (see the sender spec); `DDPSendError` is reserved for "this sender cannot send at all".
@@ -86,13 +90,17 @@ class DDPHeader:
     def version(self) -> int        # (flags & FLAG_VERSION_MASK) >> 6
     @property
     def push(self) -> bool          # bool(flags & FLAG_PUSH)
+    @property
+    def query(self) -> bool         # bool(flags & FLAG_QUERY)
+    @property
+    def reply(self) -> bool         # bool(flags & FLAG_REPLY)
 
     def encode(self) -> bytes       # struct.pack(HEADER_FORMAT, ...)
     @classmethod
     def decode(cls, data: bytes) -> DDPHeader
 ```
 
-`encode` validates nothing; the builders below produce valid values and the dataclass is the typed carrier. `decode` raises `ValueError` on fewer than 10 bytes. It exists for the test listener fixture and the CLI's debug dump; the library never receives DDP.
+`encode` validates nothing; the builders below produce valid values and the dataclass is the typed carrier. `decode` raises `ValueError` on fewer than 10 bytes. It exists for the test listener fixture, the CLI's debug dump, and the sender's reply matching; the library never receives pixel data.
 
 ### build_header
 
@@ -155,6 +163,14 @@ def build_push_packet(*, sequence: SequenceCounter, data_type: int, destination:
 
 A header-only packet, `length = 0`, `offset = 0`, push set. Used to latch several segments sent with `push=False`. Whether a receiver honors a zero-length push is controller-dependent and is recorded per controller in `docs/compatibility.md`.
 
+### build_query_packet
+
+```python
+def build_query_packet(*, sequence: SequenceCounter, destination: int, offset: int = 0, length: int = 0) -> bytes
+```
+
+A header-only read request: flags `FLAG_VERSION_1 | FLAG_QUERY`, data type 0, the given destination (normally `DESTINATION_CONFIG` or `DESTINATION_STATUS`), one sequence number consumed. Same range checks as `build_header`. The reply handling lives in the sender; see `2026-10-29-aioddp-discovery.md`.
+
 ## Golden vectors
 
 These are the byte-exact cases the protocol tests assert. Hex, spaces for readability.
@@ -166,6 +182,8 @@ These are the byte-exact cases the protocol tests assert. Hex, spaces for readab
 | RGBW, seq 15, offset 0, len 4, push | `41 0F 1B 01 00000000 0004` |
 | Legacy byte, seq 1, offset 0, len 3, push | `41 01 01 01 00000000 0003` |
 | Push-only latch, seq 3, RGB | `41 03 0B 01 00000000 0000` |
+| Query config, seq 1 | `42 01 00 FA 00000000 0000` |
+| Query status, seq 2 | `42 02 00 FB 00000000 0000` |
 
 Chunking cases:
 
@@ -180,6 +198,7 @@ Sequence: 15 consecutive `next()` calls from a fresh counter return 1..15; the 1
 
 ## Out of scope
 
-- Query, reply, storage, and timecode flags
-- Destination IDs 250 (JSON config), 251 (JSON status), 254 (DMX transit)
-- Receiving or parsing anything beyond `DDPHeader.decode` for tests
+- Storage and timecode flags
+- Writing to destinations 246, 250, or 251 (JSON control and configuration writes); only reads are supported
+- Destination 254 (DMX transit)
+- Receiving pixel data

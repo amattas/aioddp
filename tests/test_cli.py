@@ -17,15 +17,16 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner, Result
 
-from pyddp.cli import cli
-from pyddp.effects import EFFECTS
-from tests.conftest import UDPListener
+from aioddp.cli import cli
+from aioddp.const import DESTINATION_CONFIG
+from aioddp.effects import EFFECTS
+from tests.conftest import UDPListener, config_responder, reply_packet
 
 WHITE = bytes([255, 255, 255])
 
 
 class CLI:
-    """Invokes ``pyddp`` from a temp working directory; ``target`` aims it at the listener with literal bytes."""
+    """Invokes ``aioddp`` from a temp working directory; ``target`` aims it at the listener with literal bytes."""
 
     def __init__(self, listener: UDPListener, workdir: Path) -> None:
         self.listener = listener
@@ -235,8 +236,8 @@ async def test_version_prints_metadata_version(run: CLI) -> None:
     result = await run("version")
     as_json = await run("--json", "version")
     assert result.exit_code == as_json.exit_code == 0
-    assert result.stdout == f"pyddp {version('pyddp')}\n"
-    assert json.loads(as_json.stdout) == {"version": version("pyddp")}
+    assert result.stdout == f"aioddp {version('aioddp')}\n"
+    assert json.loads(as_json.stdout) == {"version": version("aioddp")}
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="SIGINT delivery to a child process is POSIX-only")
@@ -244,7 +245,7 @@ async def test_ctrl_c_blanks_and_exits_130(run: CLI) -> None:
     proc = await asyncio.create_subprocess_exec(
         sys.executable,
         "-m",
-        "pyddp.cli",
+        "aioddp.cli",
         *run.target,
         "effect",
         "chase",
@@ -263,9 +264,9 @@ async def test_ctrl_c_blanks_and_exits_130(run: CLI) -> None:
 
 @pytest.mark.parametrize("tracebacks", [False, True])
 def test_log_handler_shows_tracebacks_only_when_asked(capsys: pytest.CaptureFixture[str], tracebacks: bool) -> None:
-    from pyddp.cli import _StderrHandler
+    from aioddp.cli import _StderrHandler
 
-    logger = logging.getLogger("pyddp.test_cli")
+    logger = logging.getLogger("aioddp.test_cli")
     handler = _StderrHandler(tracebacks=tracebacks)
     logger.addHandler(handler)
     try:
@@ -278,3 +279,73 @@ def test_log_handler_shows_tracebacks_only_when_asked(capsys: pytest.CaptureFixt
     err = capsys.readouterr().err
     assert "effect failed" in err
     assert ("Traceback" in err) == tracebacks
+
+
+async def test_query_prints_layout_and_config_snippet_without_count(run: CLI) -> None:
+    run.listener.responder = config_responder
+    result = await run("--host", run.listener.host, "--port", str(run.listener.port), "query")
+    assert result.exit_code == 0, result.output
+    lines = result.stdout.splitlines()
+    assert lines[0] == "NDBPRO by 3WL, firmware 2.0, at 127.0.0.1 via ddp (protocol ddp)"
+    assert lines[1:5] == [
+        "Output  Pixels  Start  Reversed by controller",
+        "1       80      0      yes",
+        "2       42      80     no",
+        "6 unused outputs",
+    ]
+    assert "Total 122 pixels, 3 channels per pixel (rgb)" in lines
+    assert result.stdout.endswith(
+        "strip:\n  host: 127.0.0.1\n  pixel_count: 122\n  data_type: rgb\nsegments:\n"
+        "  output1: { start: 0, length: 80 }\n  output2: { start: 80, length: 42 }\n"
+    )
+    assert result.stderr == ""
+
+
+async def test_query_json(run: CLI) -> None:
+    run.listener.responder = config_responder
+    target = ["--host", run.listener.host, "--port", str(run.listener.port)]
+    result = await run(*target, "query", "--json", "--timeout", "0.1")
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.stdout)
+    assert (data["source"], data["pixel_count"], data["channels"], data["data_type"]) == ("ddp", 122, 3, "rgb")
+    assert (data["model"], data["firmware"], data["protocol"]) == ("NDBPRO", "2.0", "ddp")
+    assert data["outputs"][:2] == [
+        {"index": 0, "start": 0, "length": 80, "reversed_by_controller": True},
+        {"index": 1, "start": 80, "length": 42, "reversed_by_controller": False},
+    ]
+    assert data["config"]["conv"] == 13
+    assert data["status"]["man"] == "3WL"
+
+
+@pytest.mark.parametrize(
+    ("config", "warnings", "absent"),
+    [
+        (
+            b'{"config": {"proto": 2, "conv": 3, "ports": [{"l": 4, "ss": 1}]}}',
+            ["controller protocol is e131; set it to DDP", "aioddp cannot drive 1-channel pixels"],
+            ["data_type", "firmware"],
+        ),
+        (b'{"config": {"ports": [{"l": 0, "ss": 1}]}}', ["reports no pixels"], ["strip:"]),
+    ],
+    ids=["e131-single-channel-no-status", "no-pixels"],
+)
+async def test_query_warns_about_unusable_layouts(
+    run: CLI, config: bytes, warnings: list[str], absent: list[str]
+) -> None:
+    run.listener.responder = lambda packet, addr: (
+        [reply_packet(DESTINATION_CONFIG, config)] if packet[3] == DESTINATION_CONFIG else []
+    )
+    target = ["--host", run.listener.host, "--port", str(run.listener.port)]
+    result = await run(*target, "query", "--timeout", "0.05")
+    assert result.exit_code == 0, result.output
+    assert all(w in result.stderr for w in warnings)
+    assert not any(a in result.stdout for a in absent)
+    assert result.stdout.startswith("Controller at 127.0.0.1 via ddp")
+
+
+async def test_query_without_answer_exits_with_send_error(run: CLI) -> None:
+    target = ["--host", run.listener.host, "--port", str(run.listener.port)]
+    result = await run(*target, "query", "--timeout", "0.05")
+    assert result.exit_code == 2, result.output
+    assert f"did not answer a DDP query on port {run.listener.port}" in result.stderr
+    assert "HTTP" not in result.stderr

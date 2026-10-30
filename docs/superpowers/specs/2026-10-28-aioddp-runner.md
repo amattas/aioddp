@@ -1,8 +1,8 @@
-# pyddp component spec: EffectRunner and fades
+# aioddp component spec: EffectRunner and fades
 
 Date: 2026-10-28
 Status: Draft
-Parent: `2026-10-28-pyddp-design.md`
+Parent: `2026-10-28-aioddp-design.md`
 Module: `runner.py`
 
 ## Scope
@@ -76,7 +76,7 @@ while True:
 
 ### Cancellation and errors
 
-- `start()` creates the task with name `pyddp-effect-<effect>-<segment>`; calling it while running raises `RuntimeError` (programmer error, not a `PyDDPError`)
+- `start()` creates the task with name `aioddp-effect-<effect>-<segment>`; calling it while running raises `RuntimeError` (programmer error, not a `DDPError`)
 - `stop()` cancels the task, awaits it, swallows only `CancelledError`, and is idempotent. After `stop()` returns there is no task. It does not blank the segment; hass-ddp decides whether to `off()` or `fill()` next
 - `EffectError` or any other exception from `render` is caught inside the task, logged at ERROR with the effect name and segment, stored in `runner.error`, and ends the loop. It is not re-raised into the loop's exception handler because nothing awaits the task in hass-ddp's normal flow. `wait()` re-raises it for callers that do
 - `DDPSendError` (sender closed underneath the runner) ends the loop the same way. Transient send errors never reach here; the sender counts them
@@ -110,7 +110,7 @@ async def fade(
 ) -> None
 ```
 
-Linear interpolation from `start` to `end` (both canonical pixel bytes of the segment's length) over `duration` seconds, sending `max(1, round(duration * fps))` frames on the same anchored schedule as the runner, frame `i` of `n` at `t0 + i * duration / n`, so the last frame, exactly `end`, lands at `duration`; a non-finite `duration` raises `ConfigError`. Interpolation is done with one `bytes` LUT-free loop per frame over `bytearray`s; at 300 pixels and 30 fps that is well inside budget. `duration <= 0` sends `end` once. Cancelling the awaiting coroutine stops the fade mid-way with the last sent frame left on the wire. This is the whole `transition` implementation hass-ddp needs: it knows both colors, pyddp knows nothing about state.
+Linear interpolation from `start` to `end` (both canonical pixel bytes of the segment's length) over `duration` seconds, sending `max(1, round(duration * fps))` frames on the same anchored schedule as the runner, frame `i` of `n` at `t0 + i * duration / n`, so the last frame, exactly `end`, lands at `duration`; a non-finite `duration` raises `ConfigError`. Interpolation is done with one `bytes` LUT-free loop per frame over `bytearray`s; at 300 pixels and 30 fps that is well inside budget. `duration <= 0` sends `end` once. Cancelling the awaiting coroutine stops the fade mid-way with the last sent frame left on the wire. This is the whole `transition` implementation hass-ddp needs: it knows both colors, aioddp knows nothing about state.
 
 Fading between two effects is out of scope. hass-ddp stops the old runner, fades to the new solid color if any, and starts the new runner.
 

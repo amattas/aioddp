@@ -6,13 +6,14 @@ import math
 from collections.abc import Mapping
 from typing import Any, ClassVar
 
-from pyddp.color import scale_color
-from pyddp.effects.base import BaseEffect, ParamSpec
+from aioddp.color import scale_color
+from aioddp.effects.base import BaseEffect, ParamSpec
 
 
 class Breathe(BaseEffect):
     name: ClassVar[str] = "breathe"
     description: ClassVar[str] = "Whole segment fades smoothly up and down"
+    color_param: ClassVar[str | None] = "color"
     params: ClassVar[Mapping[str, ParamSpec]] = {
         "color": ParamSpec("color", (255, 255, 255), "Color at full level"),
         "period": ParamSpec("float", 4.0, "Seconds per breath", 0.5, 60.0),

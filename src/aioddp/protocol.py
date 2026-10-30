@@ -1,16 +1,20 @@
-"""DDP packet construction: header encode/decode, sequence numbers, chunking.
+"""DDP packet construction: header encode/decode, sequence numbers, chunking, query replies.
 
 Pure and synchronous; no sockets and no color math.
 """
 
 from __future__ import annotations
 
+import json
 import struct
 from dataclasses import dataclass
+from typing import Any
 
-from pyddp.const import (
+from aioddp.const import (
     DESTINATION_DEFAULT,
     FLAG_PUSH,
+    FLAG_QUERY,
+    FLAG_REPLY,
     FLAG_VERSION_1,
     FLAG_VERSION_MASK,
     HEADER_FORMAT,
@@ -20,7 +24,7 @@ from pyddp.const import (
     SEQUENCE_MAX,
     SEQUENCE_MIN,
 )
-from pyddp.exceptions import ConfigError
+from aioddp.exceptions import ConfigError, DDPQueryError
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,6 +47,16 @@ class DDPHeader:
     def push(self) -> bool:
         """Whether the push (latch) flag is set."""
         return bool(self.flags & FLAG_PUSH)
+
+    @property
+    def query(self) -> bool:
+        """Whether the query flag is set (a request for the destination's data)."""
+        return bool(self.flags & FLAG_QUERY)
+
+    @property
+    def reply(self) -> bool:
+        """Whether the reply flag is set (a controller answering a query)."""
+        return bool(self.flags & FLAG_REPLY)
 
     def encode(self) -> bytes:
         """Pack the header into 10 wire bytes."""
@@ -73,12 +87,16 @@ def build_header(
     destination: int = DESTINATION_DEFAULT,
 ) -> bytes:
     """Build a validated v1 header; flags are version 1 plus push when requested."""
+    flags = FLAG_VERSION_1 | (FLAG_PUSH if push else 0)
+    return _pack_header(flags, sequence, data_type, destination, offset, length)
+
+
+def _pack_header(flags: int, sequence: int, data_type: int, destination: int, offset: int, length: int) -> bytes:
     _check_range("offset", offset, 0, MAX_OFFSET)
     _check_range("length", length, 0, MAX_DATA_LEN)
     _check_range("sequence", sequence, 0, SEQUENCE_MAX)
     _check_range("data_type", data_type, 0, 0xFF)
     _check_range("destination", destination, 0, 0xFF)
-    flags = FLAG_VERSION_1 | (FLAG_PUSH if push else 0)
     return struct.pack(HEADER_FORMAT, flags, sequence, data_type, destination, offset, length)
 
 
@@ -154,3 +172,31 @@ def build_push_packet(*, sequence: SequenceCounter, data_type: int, destination:
     )
     sequence.next()
     return packet
+
+
+def build_query_packet(*, sequence: SequenceCounter, destination: int, offset: int = 0, length: int = 0) -> bytes:
+    """Header-only query for ``destination`` (e.g. 250 config, 251 status); the controller answers with a reply."""
+    packet = _pack_header(FLAG_VERSION_1 | FLAG_QUERY, sequence.current, 0, destination, offset, length)
+    sequence.next()
+    return packet
+
+
+def _reject_constant(name: str) -> Any:
+    raise ValueError(f"{name} is not valid JSON")
+
+
+def decode_json_document(payload: bytes, *, what: str) -> dict[str, Any] | None:
+    """Parse a JSON object reply; trailing NULs and whitespace are ignored, an empty payload is ``None``.
+
+    ``what`` names the source in the ``DDPQueryError`` raised for invalid JSON or a non-object top level.
+    """
+    text = payload.rstrip(b"\x00").strip()
+    if not text:
+        return None
+    try:
+        document = json.loads(text, parse_constant=_reject_constant)
+    except ValueError as exc:  # JSONDecodeError, UnicodeDecodeError, and NaN/Infinity
+        raise DDPQueryError(f"{what} did not return valid JSON: {exc}") from exc
+    if not isinstance(document, dict):
+        raise DDPQueryError(f"{what} returned JSON {type(document).__name__}, expected an object")
+    return document
