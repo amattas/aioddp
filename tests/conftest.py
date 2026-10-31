@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import os
 from collections.abc import AsyncIterator, Callable, Iterator
 from typing import Any
 
@@ -143,3 +144,9 @@ def no_leaked_tasks(request: pytest.FixtureRequest) -> Iterator[None]:
     if inspect.iscoroutinefunction(request.function):
         request.getfixturevalue("_task_snapshot")
     yield
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Shared CI runners are noisy: triple the render budget there unless the factor is set explicitly."""
+    if os.environ.get("CI"):
+        os.environ.setdefault("AIODDP_BENCH_FACTOR", "3")

@@ -17,7 +17,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from importlib.metadata import version as _dist_version
 from pathlib import Path
-from typing import Any
+from typing import IO, Any
 
 try:
     import click
@@ -86,11 +86,28 @@ class _Options:
 
 
 class _Failure(click.ClickException):
-    """A reported failure with an explicit exit code."""
+    """A reported failure; exits 1."""
 
-    def __init__(self, message: str, exit_code: int = EXIT_ERROR) -> None:
-        super().__init__(message)
-        self.exit_code = exit_code
+    exit_code = EXIT_ERROR
+
+
+class _SendFailure(_Failure):
+    """A reported failure to reach the controller; exits 2."""
+
+    exit_code = EXIT_SEND_ERROR
+
+
+class _UsageError(click.UsageError):
+    """Exits 1 but renders exactly as the wrapped usage error (e.g. bare ``aioddp`` prints plain help)."""
+
+    exit_code = EXIT_ERROR
+
+    def __init__(self, cause: click.UsageError) -> None:
+        super().__init__(cause.format_message(), cause.ctx)
+        self.cause = cause
+
+    def show(self, file: IO[Any] | None = None) -> None:
+        self.cause.show(file)
 
 
 class _Group(click.Group):
@@ -102,15 +119,13 @@ class _Group(click.Group):
         try:
             return super().make_context(info_name, args, parent, **extra)
         except click.UsageError as err:
-            err.exit_code = EXIT_ERROR
-            raise
+            raise _UsageError(err) from err
 
     def invoke(self, ctx: click.Context) -> Any:
         try:
             return super().invoke(ctx)
         except click.UsageError as err:
-            err.exit_code = EXIT_ERROR
-            raise
+            raise _UsageError(err) from err
 
 
 class _StderrHandler(logging.Handler):
@@ -170,8 +185,8 @@ def _reported_errors(ctx: click.Context) -> Iterator[None]:
     except DDPError as err:
         if _options(ctx).verbose >= 2:
             click.echo("".join(traceback.format_exception(err)).rstrip(), err=True)
-        code = EXIT_SEND_ERROR if isinstance(err, DDPSendError) else EXIT_ERROR
-        raise _Failure(str(err), code) from err
+        failure = _SendFailure if isinstance(err, DDPSendError) else _Failure
+        raise failure(str(err)) from err
 
 
 def _config_error(path: Path, problem: str) -> _Failure:
@@ -665,7 +680,7 @@ def query(ctx: click.Context, timeout: float, as_json: bool) -> None:
 
         layout = asyncio.run(query_layout(host, port=port, timeout=timeout))
     if layout is None:
-        raise _Failure(f"{host} did not answer a DDP query on port {port}", EXIT_SEND_ERROR)
+        raise _SendFailure(f"{host} did not answer a DDP query on port {port}")
     if layout.protocol not in (None, "ddp"):
         click.echo(f"warning: controller protocol is {layout.protocol}; set it to DDP", err=True)
     if layout.data_type is None:

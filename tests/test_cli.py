@@ -116,6 +116,12 @@ async def test_bad_config_exits_1_naming_the_problem(run: CLI, config: str | Non
     assert run.listener.packets == []
 
 
+async def test_bare_command_prints_plain_help_and_exits_1(run: CLI) -> None:
+    bare, help_ = await run(), await run("--help")
+    assert (bare.exit_code, help_.exit_code) == (1, 0), bare.output
+    assert bare.output == help_.output
+
+
 @pytest.mark.parametrize(
     ("args", "code", "message"),
     [

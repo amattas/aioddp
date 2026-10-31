@@ -32,17 +32,17 @@ dev = [
     "pytest-cov==7.1.0",
     "mypy==2.3.0",
     "ruff==0.17.2",
-    "pre-commit==4.6.0",
-    "build==1.5.0",
+    "pre-commit==4.7.0",
+    "build==1.6.1",
     "bandit==1.9.4",
     # CI installs .[dev] only and the test suite imports aioddp.cli; keep in sync with [cli].
-    "click==8.4.1",
+    "click==8.5.0",
     "pyyaml==6.0.3",
     "rich==15.0.0",
     "types-PyYAML==6.0.12.20260906",
 ]
 cli = [
-    "click==8.4.1",
+    "click==8.5.0",
     "pyyaml==6.0.3",
     "rich==15.0.0",
 ]
@@ -65,12 +65,21 @@ packages = ["src/aioddp"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-addopts = "--cov --cov-report=term-missing:skip-covered --cov-report=json"
+addopts = "--cov --cov-report=term-missing:skip-covered"
 
 [tool.coverage.run]
 source = ["src/aioddp"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 80
+fail_under = 90
 exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
+
+[tool.mypy]
+# Pinned to the project Python floor so results don't drift with the runner's interpreter.
+python_version = "3.12"
+files = ["src", "tests", "scripts"]
+strict = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true

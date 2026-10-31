@@ -118,10 +118,10 @@ conda run -n aioddp python -m pytest -q
 conda run -n aioddp ruff check .
 conda run -n aioddp ruff format --check .
 conda run -n aioddp mypy
-conda run -n aioddp python scripts/check_coverage.py
+conda run -n aioddp bandit -q -r src
 ```
 
-Coverage gates: 80% total, 95% on `protocol.py` and `color.py`.
+Coverage gate: 90% total branch coverage (`fail_under` in pyproject.toml; every pytest run enforces it).
 
 ## Testing Approach
 
@@ -129,7 +129,7 @@ Coverage gates: 80% total, 95% on `protocol.py` and `color.py`.
 - `udp_listener` fixture: real asyncio UDP socket on loopback; sender and CLI tests assert the exact bytes on the wire, no mocking
 - Golden bytes for headers, chunking, offsets, push flag, sequence wrap, and effect frames (`tests/golden/`, regenerate only via `python -m tests.golden --write`)
 - Effects tested as pure functions with fixed seeds
-- Render budget: median under 2 ms for 500 pixels per effect, scaled by `AIODDP_BENCH_FACTOR` (CI sets 3)
+- Render budget: median under 2 ms for 500 pixels per effect, scaled by `AIODDP_BENCH_FACTOR` (tests/conftest.py defaults it to 3 when `CI` is set)
 - `no_leaked_tasks` autouse fixture enforces no orphaned asyncio tasks
 
 ## Source of Truth

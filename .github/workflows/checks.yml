@@ -36,7 +36,4 @@ jobs:
     with:
       python-versions: '["3.12", "3.13", "3.14"]'
       extra-lint: bandit -q -r src
-      typecheck: python -m mypy src tests scripts
-      test: AIODDP_BENCH_FACTOR=3 python -m pytest -q
-      extra-checks: python scripts/check_coverage.py
       audit: strict
