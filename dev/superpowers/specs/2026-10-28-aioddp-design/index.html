@@ -1,0 +1,1119 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Asyncio Python library for sending DDP pixel data to LED controllers">
+      
+      
+        <meta name="author" content="Anthony Mattas">
+      
+      
+        <link rel="canonical" href="https://amattas.github.io/aioddp/dev/superpowers/specs/2026-10-28-aioddp-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/favicon.svg">
+      <meta name="generator" content="zensical-0.0.50">
+    
+    
+      
+        <title>aioddp design spec - aioddp</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../../../assets/stylesheets/modern/main.62c9b9cc.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/modern/palette.dfe2e883.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#aioddp-design-spec" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="aioddp" class="md-header__button md-logo" aria-label="aioddp" data-md-component="logo">
+      
+  <img src="../../../assets/logo.svg" alt="aioddp">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            aioddp
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              aioddp design spec
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/amattas/aioddp" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="aioddp" class="md-nav__button md-logo" aria-label="aioddp" data-md-component="logo">
+      
+  <img src="../../../assets/logo.svg" alt="aioddp">
+
+    </a>
+    aioddp
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/amattas/aioddp" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Overview
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guide
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Guide
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guide/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  CLI
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guide/effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Effects
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Reference
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../compatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Controller compatibility
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  API reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#component-specs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Component specs
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Summary
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-this-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What this is NOT
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Goals
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ddp-protocol-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        DDP protocol summary
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Architecture
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Core classes
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#public-api-sketch" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Public API sketch
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#color-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Color pipeline
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#effects-v1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Effects (v1)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sender-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Sender behavior
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        CLI
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling-and-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Error handling and logging
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Testing
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#repo-conventions-mirror-pydmp" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Repo conventions (mirror pydmp)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#milestones" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Milestones
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Open questions
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+  
+  
+
+
+<h1 id="aioddp-design-spec">aioddp design spec<a class="headerlink" href="#aioddp-design-spec" title="Permanent link">&para;</a></h1>
+<p>Date: 2026-10-28
+Status: Draft
+Companion: <code>hass-ddp/docs/superpowers/specs/2026-10-28-hass-ddp-design.md</code></p>
+<h2 id="component-specs">Component specs<a class="headerlink" href="#component-specs" title="Permanent link">&para;</a></h2>
+<p>This document is the overview. Each module has a detail spec in this directory; where the two disagree, the component spec wins and this one needs updating.</p>
+<table>
+<thead>
+<tr>
+<th>Spec</th>
+<th>Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>2026-10-28-aioddp-protocol.md</code></td>
+<td><code>const.py</code>, <code>exceptions.py</code>, <code>protocol.py</code>: header, data type byte, chunking, sequence, golden vectors</td>
+</tr>
+<tr>
+<td><code>2026-10-28-aioddp-strip-segment.md</code></td>
+<td><code>strip.py</code>: <code>Strip</code> and <code>Segment</code> models and validation rules</td>
+</tr>
+<tr>
+<td><code>2026-10-28-aioddp-color.md</code></td>
+<td><code>color.py</code>: pipeline stages, LUT, cap enforcement, color helpers</td>
+</tr>
+<tr>
+<td><code>2026-10-28-aioddp-sender.md</code></td>
+<td><code>sender.py</code>: lifecycle, <code>send_frame</code>, shadow buffer, keepalive, stats, error policy</td>
+</tr>
+<tr>
+<td><code>2026-10-28-aioddp-effects.md</code></td>
+<td><code>effects/</code>: effect contract, param schema, registry, the six v1 effects</td>
+</tr>
+<tr>
+<td><code>2026-10-28-aioddp-runner.md</code></td>
+<td><code>runner.py</code>: <code>EffectRunner</code> loop, cancellation, <code>update</code>, <code>fade</code></td>
+</tr>
+<tr>
+<td><code>2026-10-28-aioddp-cli.md</code></td>
+<td><code>cli.py</code>: commands, config file, exit codes</td>
+</tr>
+<tr>
+<td><code>2026-10-29-aioddp-discovery.md</code></td>
+<td><code>discovery.py</code> and <code>DDPSender.query</code>: DDP JSON query, config document parsing, <code>aioddp query</code></td>
+</tr>
+<tr>
+<td><code>2026-10-28-aioddp-testing.md</code></td>
+<td>fixtures, benchmark gate, file map, public exports, hardware checklist</td>
+</tr>
+</tbody>
+</table>
+<h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
+<p>aioddp is a standalone, platform-agnostic, asyncio Python library that sends DDP (Distributed Display Protocol) pixel data to LED controllers and renders effects as pure functions. It is the protocol half of a pydmp / hass-dmp style pair: hass-ddp imports it and contains no protocol code. If bytes are being built anywhere else, that code belongs here.</p>
+<p>First target is a Minleon NDB-Pro driving Rainmin RGB+ pixels on a roofline, but aioddp knows no vendor and has no HTTP client. Vendor control (the NDB-Pro's built-in effects, its HTTP-served layout) lives in the separate <code>pyminleon</code> library.</p>
+<h3 id="what-this-is-not">What this is NOT<a class="headerlink" href="#what-this-is-not" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Not a Home Assistant integration (hass-ddp is)</li>
+<li>Not a DDP receiver</li>
+<li>Not an E1.31, Art-Net, or DMX sender</li>
+<li>Not an xLights sequence player</li>
+<li>Not audio-reactive</li>
+<li>Not a WLED effect-library rewrite</li>
+</ul>
+<h2 id="goals">Goals<a class="headerlink" href="#goals" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Correct DDP v1 sender: header encode, frame chunking, push flag, sequence numbers</li>
+<li>Segments mapped to byte offsets so independent parts of one string can be driven separately</li>
+<li>A small, deterministic effect library</li>
+<li>Global brightness cap enforced in the library so no caller can bypass it</li>
+<li>CLI for bench testing a controller with no Home Assistant in the loop</li>
+<li>Zero runtime dependencies for the core package</li>
+</ul>
+<h2 id="ddp-protocol-summary">DDP protocol summary<a class="headerlink" href="#ddp-protocol-summary" title="Permanent link">&para;</a></h2>
+<p>UDP to port 4048. A 10-byte header followed by raw pixel bytes. A frame larger than one packet is split by byte offset; the push flag on the last packet tells the receiver to latch the frame.</p>
+<table>
+<thead>
+<tr>
+<th>Bytes</th>
+<th>Field</th>
+<th>What we send</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Flags</td>
+<td>Version 1 (<code>0x40</code>), plus push (<code>0x01</code>) on the last packet of a frame. Query (<code>0x02</code>) only on a layout read; never timecode or storage</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Sequence</td>
+<td>Low 4 bits, cycling 1 to 15; 0 means unused</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Data type</td>
+<td><code>0x0B</code> for 8-bit RGB, <code>0x1B</code> for 8-bit RGBW. Configurable, since some receivers expect legacy <code>0x01</code> or ignore the field</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Destination ID</td>
+<td>1 (default output device)</td>
+</tr>
+<tr>
+<td>4 to 7</td>
+<td>Data offset</td>
+<td>Byte offset into the receiver's buffer, big-endian</td>
+</tr>
+<tr>
+<td>8 to 9</td>
+<td>Data length</td>
+<td>Payload bytes in this packet, big-endian</td>
+</tr>
+<tr>
+<td>10+</td>
+<td>Data</td>
+<td>Pixel bytes in the configured channel order</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Max payload per packet: 1440 bytes (480 RGB pixels, 360 RGBW). Larger frames go out as several packets with increasing offsets, push set only on the last.</li>
+<li>No priority, no acknowledgement. Two senders on one controller fight; only one source talks at a time.</li>
+<li>Segments are byte ranges. A segment can be sent as its own packet(s) at its own offset without merging frames. To latch several segments together, send them without push and push once at the end.</li>
+<li>The protocol's optional read side (query flag to destination 250 for JSON config, 251 for JSON status) is the only way to learn a controller's layout. It is supported, best effort, and some controllers publish the same JSON over HTTP instead; fetching that is out of scope here (<code>pyminleon</code> does it and passes the JSON to <code>parse_config</code>); see the discovery spec.</li>
+</ul>
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>aioddp/
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── src/aioddp/
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│   ├── __init__.py       # Public exports
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│   ├── protocol.py       # Header encode/decode, flags, data types, chunking
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│   ├── sender.py         # DDPSender: async UDP endpoint, sequence, send_frame, keepalive
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│   ├── strip.py          # Strip and Segment models, validation
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   ├── color.py          # Gamma, brightness scaling, Kelvin to RGB, brightness cap, color order
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│   ├── effects/          # base.py (contract, params), __init__.py (registry), one module per effect
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   ├── runner.py         # EffectRunner: async task rendering one segment at a target fps; fade()
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│   ├── discovery.py      # ControllerLayout from a DDP JSON config query; parse_config for documents fetched elsewhere
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>│   ├── const.py          # Port, header sizes, flag bits, data type codes, defaults
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   ├── exceptions.py     # DDPError hierarchy
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>│   └── cli.py            # aioddp command (click + rich), [cli] extra
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>└── tests/
+</span></code></pre></div>
+<h3 id="core-classes">Core classes<a class="headerlink" href="#core-classes" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>Strip(host, pixel_count, port=4048, data_type=RGB, color_order="RGB", brightness_cap=1.0)</code></li>
+<li><code>Segment(name, start, length, reverse=False)</code>: validated against the strip (no overlap required, but out-of-range is an error)</li>
+<li><code>DDPSender(strip, keepalive_interval=None)</code>: async context manager. <code>send_frame(pixels, segment=None, brightness=1.0, push=True)</code>, <code>fill(segment, color, brightness)</code>, <code>off(segment)</code>, <code>push()</code>, <code>close()</code>. Owns the sequence counter, a shadow buffer of the last wire bytes, and the optional keepalive task. There is no raw-bytes send: <code>send_frame</code> takes canonical RGB(W) pixels and always runs the color pipeline, which is how the cap is enforced</li>
+<li><code>EffectRunner(sender, segment, effect, fps=30, params=None, brightness=1.0, seed=None)</code>: <code>start()</code>, <code>stop()</code>, <code>update(params=, brightness=, fps=)</code>, <code>wait()</code>; cancels cleanly and never leaves an orphaned task. <code>fade(sender, segment, start, end, duration)</code> is the transition helper</li>
+<li><code>Effect</code> protocol: <code>render(length: int, t: float, params: Mapping, seed: int) -&gt; bytes</code> returning <code>length * 3</code> canonical RGB bytes, plus a declared <code>params</code> schema with defaults and a <code>static</code> flag</li>
+<li><code>discover(host)</code>: <code>ControllerLayout</code> (pixel count, one <code>OutputInfo</code> per output, channels, identity) from a DDP query, or <code>None</code>; <code>parse_config</code> builds the same layout from a document fetched by other means; <code>layout.segments()</code> gives one <code>Segment</code> per active output. <code>DDPSender.query(destination)</code> is the underlying read</li>
+</ul>
+<h3 id="public-api-sketch">Public API sketch<a class="headerlink" href="#public-api-sketch" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">aioddp</span><span class="w"> </span><span class="kn">import</span> <span class="n">DDPSender</span><span class="p">,</span> <span class="n">EffectRunner</span><span class="p">,</span> <span class="n">Segment</span><span class="p">,</span> <span class="n">Strip</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">strip</span> <span class="o">=</span> <span class="n">Strip</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s2">"10.0.40.20"</span><span class="p">,</span> <span class="n">pixel_count</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">brightness_cap</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">roof</span> <span class="o">=</span> <span class="n">Segment</span><span class="p">(</span><span class="s2">"roofline"</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">260</span><span class="p">)</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">peak</span> <span class="o">=</span> <span class="n">Segment</span><span class="p">(</span><span class="s2">"peak"</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">260</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">async</span> <span class="k">with</span> <span class="n">DDPSender</span><span class="p">(</span><span class="n">strip</span><span class="p">)</span> <span class="k">as</span> <span class="n">tx</span><span class="p">:</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="k">await</span> <span class="n">tx</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">roof</span><span class="p">,</span> <span class="n">rgb</span><span class="o">=</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">140</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span> <span class="n">brightness</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">runner</span> <span class="o">=</span> <span class="n">EffectRunner</span><span class="p">(</span><span class="n">tx</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">effect</span><span class="o">=</span><span class="s2">"chase"</span><span class="p">,</span> <span class="n">fps</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"speed"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">})</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="k">await</span> <span class="n">runner</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Host and pixel counts above are placeholders.</p>
+<h2 id="color-pipeline">Color pipeline<a class="headerlink" href="#color-pipeline" title="Permanent link">&para;</a></h2>
+<p>Every frame, from any caller, goes through the same stage before it hits the socket:</p>
+<ol>
+<li>Effect or fill produces linear RGB(W) per pixel</li>
+<li>Per-call brightness applied</li>
+<li>Gamma correction (table, configurable, default 2.2; can be disabled if the controller already applies it)</li>
+<li>Global brightness cap applied</li>
+<li>Reorder to the strip's color order</li>
+<li>Optional segment reverse</li>
+</ol>
+<p>The cap lives in step 4 and is not optional at the API level: callers can lower it, not skip it. This protects long runs without power injection from voltage drop and color shift.</p>
+<p>Kelvin to RGB uses a standard approximation for 2000 to 6500 K. Color temp on RGB-only pixels is an approximation and the docs say so.</p>
+<h2 id="effects-v1">Effects (v1)<a class="headerlink" href="#effects-v1" title="Permanent link">&para;</a></h2>
+<p>Each effect is a pure function of segment length, time, and params, deterministic given a seed so tests can assert exact bytes.</p>
+<table>
+<thead>
+<tr>
+<th>Effect</th>
+<th>Params</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Solid</td>
+<td>color. Not a loop: render once, send, keepalive only if enabled</td>
+</tr>
+<tr>
+<td>Breathe</td>
+<td>color, period</td>
+</tr>
+<tr>
+<td>Chase / theater chase</td>
+<td>colors, speed, spacing</td>
+</tr>
+<tr>
+<td>Twinkle</td>
+<td>base color, sparkle color, density, seed</td>
+</tr>
+<tr>
+<td>Rainbow</td>
+<td>speed, spread</td>
+</tr>
+<tr>
+<td>Palette fill</td>
+<td>list of colors, block size (static; holiday, team colors)</td>
+</tr>
+</tbody>
+</table>
+<p>Effects must render a few hundred pixels in well under 1 ms. A benchmark test enforces a budget so hass-ddp can run them on the HA event loop without stalling it.</p>
+<h2 id="sender-behavior">Sender behavior<a class="headerlink" href="#sender-behavior" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>asyncio</code> datagram endpoint, no threads</li>
+<li>Sequence counter cycles 1 to 15 per sender</li>
+<li>Frame chunking at 1440 bytes, push on the last packet only</li>
+<li>Optional keepalive: resend the last full frame every N seconds when nothing else has been sent. Off by default; enabled only if the controller blanks without data</li>
+<li><code>close()</code> stops keepalive and closes the socket. It does not blank the lights; blanking is an explicit <code>off()</code></li>
+<li>Send errors raise <code>DDPSendError</code>; transient <code>OSError</code> on UDP send is logged and counted, not fatal, so one dropped packet never kills an effect</li>
+</ul>
+<h2 id="cli">CLI<a class="headerlink" href="#cli" title="Permanent link">&para;</a></h2>
+<p>Installed via the <code>[cli]</code> extra (click, rich, pyyaml), same pattern as pydmp. Optional <code>config.yaml</code> (gitignored) for host and pixel count.</p>
+<ul>
+<li><code>aioddp fill &lt;host&gt; --count N --color ff8800 [--brightness 0.5] [--cap 0.6]</code></li>
+<li><code>aioddp effect &lt;host&gt; --count N --effect chase --fps 30 [--param speed=1.0]</code></li>
+<li><code>aioddp off &lt;host&gt; --count N</code></li>
+<li><code>aioddp test &lt;host&gt; --count N</code>: walks a single lit pixel down the string to confirm pixel count, channel order, and segment boundaries. First thing to run against real hardware</li>
+<li><code>aioddp query &lt;host&gt;</code>: asks the controller for its output layout and prints a ready-to-paste <code>config.yaml</code>; run it before <code>test</code> on a controller that answers</li>
+<li><code>aioddp effects</code>: list effects and their params</li>
+</ul>
+<h2 id="error-handling-and-logging">Error handling and logging<a class="headerlink" href="#error-handling-and-logging" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Exception hierarchy rooted at <code>DDPError</code>: <code>ConfigError</code>, <code>DDPSendError</code>, <code>EffectError</code>, <code>DDPQueryError</code></li>
+<li>Input validation: pixel count &gt; 0, segments in range, brightness and cap in 0.0 to 1.0, fps in 1 to 60, data type in the supported set</li>
+<li>Standard <code>logging</code>; never log full frames above DEBUG</li>
+</ul>
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
+<ul>
+<li>pytest + pytest-asyncio (<code>asyncio_mode = "auto"</code>), pytest-cov</li>
+<li>Golden-byte tests for header encoding, chunking, offsets, push flag, sequence wrap</li>
+<li>Local UDP listener fixture to assert exactly what the sender puts on the wire</li>
+<li>Effects tested as pure functions with fixed seeds, no network</li>
+<li>Render-time budget test per effect</li>
+<li>Coverage target 80%+ overall, 95%+ on <code>protocol.py</code> and <code>color.py</code></li>
+</ul>
+<h2 id="repo-conventions-mirror-pydmp">Repo conventions (mirror pydmp)<a class="headerlink" href="#repo-conventions-mirror-pydmp" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>src/aioddp</code> layout, hatchling build backend</li>
+<li><code>requires-python = "&gt;=3.12"</code>, Apache-2.0 license, author Anthony Mattas</li>
+<li><code>dependencies = []</code>; dev, cli, docs extras with exact pins</li>
+<li>ruff lint and format (line length 120, rules <code>E, F, I, B, UP, SIM, S</code>, <code>S101</code> ignored in tests), mypy strict pinned to 3.12, bandit, pre-commit</li>
+<li><code>.editorconfig</code>, <code>.gitignore</code> copied from pydmp (adds <code>config.yaml</code>)</li>
+<li><code>CLAUDE.md</code> and <code>AGENTS.md</code> at the root, same structure as pydmp's</li>
+<li>Docs: Zensical + mike, published to <code>https://amattas.github.io/aioddp/</code>, API reference generated with pydoc-markdown, <code>scripts/publish_versioned_docs.py</code> copied from pydmp</li>
+<li>GitHub: <code>ci.yml</code>, <code>docs.yml</code>, <code>release.yml</code> manual-only; release from an <code>X.Y.Z</code> tag on main, PyPI trusted publishing via the <code>pypi</code> environment with a reviewer gate. <code>CODEOWNERS</code>, <code>dependabot.yml</code>, issue templates (swap <code>panel_compatibility</code> for <code>controller_compatibility</code>)</li>
+<li><code>docs/compatibility.md</code> lists controllers tested and what data type byte and timeout behavior each one has</li>
+</ul>
+<h2 id="milestones">Milestones<a class="headerlink" href="#milestones" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Core:</strong> protocol, sender, color pipeline with cap, <code>fill</code>, <code>off</code>, <code>test</code> CLI. Done when the CLI lights the real string at the right count and order</li>
+<li><strong>Effects:</strong> registry, six v1 effects, <code>EffectRunner</code>, <code>effect</code> CLI, budget tests</li>
+<li><strong>Release 0.1.0:</strong> docs site, PyPI publish, compatibility page with the NDB-Pro</li>
+</ol>
+<p>Maintenance-only after 0.1.0 until school is done.</p>
+<h2 id="open-questions">Open questions<a class="headerlink" href="#open-questions" title="Permanent link">&para;</a></h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Is <code>aioddp</code> free on PyPI? If not, pick a name before scaffolding</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Does the NDB-Pro honor the data type byte, or accept anything?</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Does the NDB-Pro treat DDP offsets as one flat buffer across its 8 outputs, or per output? One flat buffer: each output has a 1-based starting slot in its config document (output 2 at slot 241 after 80 three-channel pixels on output 1). Answered 2026-10-29 by <code>aioddp query</code>; see <code>docs/compatibility.md</code></li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Can the layout be discovered? Not over DDP on the NDB-Pro (no reply to queries), but it serves the DDP JSON config document over HTTP, which <code>pyminleon</code> reads and hands to <code>parse_config</code>; <code>discover()</code> is the DDP query alone</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> What does the NDB-Pro do when DDP stops: hold, blank, or fall back to built-in effects, and after how long? Decides the keepalive default</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Does the NDB-Pro apply its own gamma? Decides whether ours is on by default</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Is a sync wrapper worth it (pydmp has one), or is the CLI enough for scripting? The sender spec recommends dropping it from 0.1.0; <code>sender_sync.py</code> is out of the tree until someone asks</li>
+</ul>
+<p>The remaining hardware questions are answered by the checklist at the end of the testing spec and recorded in <code>docs/compatibility.md</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; Anthony Mattas
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/amattas/aioddp" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate":null,"base":"../../..","features":["content.code.annotate","content.code.copy","content.footnote.tooltips","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.sections","navigation.top","navigation.tracking","search.highlight"],"search":"../../../assets/javascripts/workers/search.b6b7e04f.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"alias":true,"default":"latest","provider":"mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7f30b55.min.js"></script>
+      
+    
+  </body>
+</html>

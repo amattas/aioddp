@@ -1,0 +1,1543 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Asyncio Python library for sending DDP pixel data to LED controllers">
+      
+      
+        <meta name="author" content="Anthony Mattas">
+      
+      
+        <link rel="canonical" href="https://amattas.github.io/aioddp/dev/api/reference/">
+      
+      
+        <link rel="prev" href="../../compatibility/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon.svg">
+      <meta name="generator" content="zensical-0.0.50">
+    
+    
+      
+        <title>API Reference - aioddp</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.62c9b9cc.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.dfe2e883.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#aioddp" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="aioddp" class="md-header__button md-logo" aria-label="aioddp" data-md-component="logo">
+      
+  <img src="../../assets/logo.svg" alt="aioddp">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            aioddp
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              API Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/amattas/aioddp" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="aioddp" class="md-nav__button md-logo" aria-label="aioddp" data-md-component="logo">
+      
+  <img src="../../assets/logo.svg" alt="aioddp">
+
+    </a>
+    aioddp
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/amattas/aioddp" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Overview
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guide
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Guide
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  CLI
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Effects
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Reference
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Controller compatibility
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  API reference
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-path__item">
+        <a href="../../compatibility/" class="md-path__link">
+          
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+  
+  
+
+
+<p><a id="aioddp"></a></p>
+<h1 id="aioddp">aioddp<a class="headerlink" href="#aioddp" title="Permanent link">&para;</a></h1>
+<p>aioddp: asyncio DDP sender, color pipeline, and effects for LED pixel controllers.</p>
+<p><a id="aioddp.exceptions"></a></p>
+<h1 id="aioddpexceptions">aioddp.exceptions<a class="headerlink" href="#aioddpexceptions" title="Permanent link">&para;</a></h1>
+<p>aioddp exception hierarchy.</p>
+<p><a id="aioddp.exceptions.DDPError"></a></p>
+<h2 id="ddperror-objects">DDPError Objects<a class="headerlink" href="#ddperror-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">DDPError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Base class for every aioddp error.</p>
+<p><a id="aioddp.exceptions.ConfigError"></a></p>
+<h2 id="configerror-objects">ConfigError Objects<a class="headerlink" href="#configerror-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">ConfigError</span><span class="p">(</span><span class="n">DDPError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Invalid strip, segment, params, or color.</p>
+<p><a id="aioddp.exceptions.DDPSendError"></a></p>
+<h2 id="ddpsenderror-objects">DDPSendError Objects<a class="headerlink" href="#ddpsenderror-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">DDPSendError</span><span class="p">(</span><span class="n">DDPError</span><span class="p">)</span>
+</span></code></pre></div>
+<p>The sender cannot send at all: socket could not be opened or the sender is closed.</p>
+<p><a id="aioddp.exceptions.DDPQueryError"></a></p>
+<h2 id="ddpqueryerror-objects">DDPQueryError Objects<a class="headerlink" href="#ddpqueryerror-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">DDPQueryError</span><span class="p">(</span><span class="n">DDPError</span><span class="p">)</span>
+</span></code></pre></div>
+<p>A controller answered a query or config request with something unusable: bad JSON, not an object, bad ports.</p>
+<p><a id="aioddp.exceptions.EffectError"></a></p>
+<h2 id="effecterror-objects">EffectError Objects<a class="headerlink" href="#effecterror-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">EffectError</span><span class="p">(</span><span class="n">DDPError</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Unknown effect, bad effect params, or a render failure.</p>
+<p><a id="aioddp.cli"></a></p>
+<h1 id="aioddpcli">aioddp.cli<a class="headerlink" href="#aioddpcli" title="Permanent link">&para;</a></h1>
+<p><code>aioddp</code> command line: bench tool for a DDP controller with no Home Assistant in the loop.</p>
+<p>A thin shell over the library: every command resolves to a <code>Strip</code>, an optional <code>Segment</code>, and one or two
+library calls inside <code>asyncio.run</code>. Needs the <code>[cli]</code> extra; <code>import aioddp</code> never imports this module.</p>
+<p><a id="aioddp.cli.CLI_BRIGHTNESS_CAP"></a></p>
+<h4 id="cli_brightness_cap">CLI_BRIGHTNESS_CAP<a class="headerlink" href="#cli_brightness_cap" title="Permanent link">&para;</a></h4>
+<p>the bench user is standing next to the lights; hass-ddp defaults to 0.6</p>
+<p><a id="aioddp.cli.cli"></a></p>
+<h4 id="cli">cli<a class="headerlink" href="#cli" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nd">@click</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="bp">cls</span><span class="o">=</span><span class="n">_Group</span><span class="p">,</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>             <span class="n">context_settings</span><span class="o">=</span><span class="p">{</span><span class="s2">"help_option_names"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"-h"</span><span class="p">,</span> <span class="s2">"--help"</span><span class="p">]})</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="s2">"--config"</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dir_okay</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">path_type</span><span class="o">=</span><span class="n">Path</span><span class="p">),</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">help</span><span class="o">=</span><span class="s2">"YAML config file [default: ./config.yaml if it exists]."</span><span class="p">,</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">)</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--host"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Controller host or IP."</span><span class="p">)</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--count"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Pixel count."</span><span class="p">)</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--port"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">"UDP port [default: </span><span class="si">{</span><span class="n">DDP_PORT</span><span class="si">}</span><span class="s2">]."</span><span class="p">)</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--type"</span><span class="p">,</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>              <span class="s2">"data_type"</span><span class="p">,</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>              <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">Choice</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">_DATA_TYPES</span><span class="p">),</span> <span class="n">case_sensitive</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>              <span class="n">help</span><span class="o">=</span><span class="s2">"[default: rgb]"</span><span class="p">)</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    <span class="s2">"--order"</span><span class="p">,</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>    <span class="n">help</span><span class="o">=</span><span class="s2">"Color order, e.g. GRB [default: RGB, or RGBW for --type rgbw]."</span><span class="p">)</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--cap"</span><span class="p">,</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>              <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>              <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Brightness cap, 0 to 1 [default: </span><span class="si">{</span><span class="n">CLI_BRIGHTNESS_CAP</span><span class="si">}</span><span class="s2">]."</span><span class="p">)</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--gamma"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Gamma [default: </span><span class="si">{</span><span class="n">DEFAULT_GAMMA</span><span class="si">}</span><span class="s2">]."</span><span class="p">)</span>
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--no-gamma"</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Disable gamma correction."</span><span class="p">)</span>
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--data-type-byte"</span><span class="p">,</span>
+</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>              <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>              <span class="n">help</span><span class="o">=</span><span class="s2">"Override the DDP header data type byte."</span><span class="p">)</span>
+</span><span id="__span-5-26"><a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--segment"</span><span class="p">,</span>
+</span><span id="__span-5-27"><a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>              <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-5-28"><a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>              <span class="n">metavar</span><span class="o">=</span><span class="s2">"NAME"</span><span class="p">,</span>
+</span><span id="__span-5-29"><a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>              <span class="n">help</span><span class="o">=</span><span class="s2">"Config segment or START:LENGTH[:r] [default: all]."</span><span class="p">)</span>
+</span><span id="__span-5-30"><a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"-v"</span><span class="p">,</span>
+</span><span id="__span-5-31"><a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>              <span class="s2">"--verbose"</span><span class="p">,</span>
+</span><span id="__span-5-32"><a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>              <span class="n">count</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-5-33"><a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>              <span class="n">help</span><span class="o">=</span><span class="s2">"-v INFO, -vv DEBUG (one line per packet) and tracebacks."</span><span class="p">)</span>
+</span><span id="__span-5-34"><a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a><span class="nd">@_json_option</span>
+</span><span id="__span-5-35"><a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a><span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+</span><span id="__span-5-36"><a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a><span class="k">def</span><span class="w"> </span><span class="nf">cli</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-5-37"><a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a>        <span class="n">count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">data_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-5-38"><a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a>        <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cap</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-5-39"><a id="__codelineno-5-39" name="__codelineno-5-39" href="#__codelineno-5-39"></a>        <span class="n">no_gamma</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">data_type_byte</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">segment</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-5-40"><a id="__codelineno-5-40" name="__codelineno-5-40" href="#__codelineno-5-40"></a>        <span class="n">verbose</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">as_json</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Bench tool for DDP pixel controllers.</p>
+<p><a id="aioddp.cli.fill"></a></p>
+<h4 id="fill">fill<a class="headerlink" href="#fill" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nd">@cli</span><span class="o">.</span><span class="n">command</span><span class="p">()</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--color"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Hex, name, or RGB(W) color."</span><span class="p">)</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--kelvin"</span><span class="p">,</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>              <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>              <span class="n">help</span><span class="o">=</span><span class="s2">"Color temperature instead of --color."</span><span class="p">)</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--brightness"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">show_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="nd">@_segment_option</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">fill</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">kelvin</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>         <span class="n">brightness</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">segment</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Fill the target with one color, then exit.</p>
+<p><a id="aioddp.cli.off"></a></p>
+<h4 id="off">off<a class="headerlink" href="#off" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nd">@cli</span><span class="o">.</span><span class="n">command</span><span class="p">()</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nd">@_segment_option</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">off</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">segment</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Blank the target, then exit.</p>
+<p><a id="aioddp.cli.effect"></a></p>
+<h4 id="effect">effect<a class="headerlink" href="#effect" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@cli</span><span class="o">.</span><span class="n">command</span><span class="p">()</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s2">"name"</span><span class="p">)</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--fps"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_FPS</span><span class="p">,</span> <span class="n">show_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--param"</span><span class="p">,</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>              <span class="s2">"params"</span><span class="p">,</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>              <span class="n">multiple</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>              <span class="n">metavar</span><span class="o">=</span><span class="s2">"KEY=VALUE"</span><span class="p">,</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>              <span class="n">help</span><span class="o">=</span><span class="s2">"Effect parameter; repeatable."</span><span class="p">)</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--brightness"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">show_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--seed"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Seed for random effects [default: 0]."</span><span class="p">)</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="nd">@_segment_option</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--duration"</span><span class="p">,</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>              <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">FloatRange</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">min_open</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>              <span class="n">help</span><span class="o">=</span><span class="s2">"Seconds to run [default: until Ctrl-C]."</span><span class="p">)</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--keep"</span><span class="p">,</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>              <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>              <span class="n">help</span><span class="o">=</span><span class="s2">"Leave the last frame up on exit instead of blanking."</span><span class="p">)</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="nd">@_json_option</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="k">def</span><span class="w"> </span><span class="nf">effect</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>           <span class="n">brightness</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">segment</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>           <span class="n">duration</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">keep</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">as_json</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Run effect NAME until Ctrl-C or --duration; blank on exit unless --keep or the effect is static.</p>
+<p><a id="aioddp.cli.test_command"></a></p>
+<h4 id="test_command">test_command<a class="headerlink" href="#test_command" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nd">@cli</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="s2">"test"</span><span class="p">)</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--delay"</span><span class="p">,</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>              <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">FloatRange</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>              <span class="n">default</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>              <span class="n">show_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>              <span class="n">help</span><span class="o">=</span><span class="s2">"Seconds per walk step."</span><span class="p">)</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--color"</span><span class="p">,</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>              <span class="n">default</span><span class="o">=</span><span class="s2">"ffffff"</span><span class="p">,</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>              <span class="n">show_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>              <span class="n">help</span><span class="o">=</span><span class="s2">"Walk color."</span><span class="p">)</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--hold"</span><span class="p">,</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>              <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">FloatRange</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>              <span class="n">default</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>              <span class="n">show_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>              <span class="n">help</span><span class="o">=</span><span class="s2">"Order and ends hold."</span><span class="p">)</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="nd">@_segment_option</span>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--loop"</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Repeat the walk until Ctrl-C."</span><span class="p">)</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="nd">@_json_option</span>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_command</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">hold</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>                 <span class="n">segment</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">loop</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">as_json</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Hardware bring-up: color order check, single-pixel walk, ends; blanks on exit.</p>
+<p><a id="aioddp.cli.effects"></a></p>
+<h4 id="effects">effects<a class="headerlink" href="#effects" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nd">@cli</span><span class="o">.</span><span class="n">command</span><span class="p">()</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nd">@_json_option</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">effects</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">as_json</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>List effects and their params. Needs no host.</p>
+<p><a id="aioddp.cli.query"></a></p>
+<h4 id="query">query<a class="headerlink" href="#query" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nd">@cli</span><span class="o">.</span><span class="n">command</span><span class="p">()</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"--timeout"</span><span class="p">,</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>              <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">FloatRange</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">min_open</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>              <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>              <span class="n">show_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>              <span class="n">help</span><span class="o">=</span><span class="s2">"DDP query wait."</span><span class="p">)</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nd">@_json_option</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">query</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">as_json</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Ask the controller for its output layout (DDP query) and print a config snippet. Needs no --count.</p>
+<p><a id="aioddp.cli.version_command"></a></p>
+<h4 id="version_command">version_command<a class="headerlink" href="#version_command" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nd">@cli</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="s2">"version"</span><span class="p">)</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">version_command</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Print the aioddp version.</p>
+<p><a id="aioddp.cli.main"></a></p>
+<h4 id="main">main<a class="headerlink" href="#main" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Console-script entry point.</p>
+<p><a id="aioddp.protocol"></a></p>
+<h1 id="aioddpprotocol">aioddp.protocol<a class="headerlink" href="#aioddpprotocol" title="Permanent link">&para;</a></h1>
+<p>DDP packet construction: header encode/decode, sequence numbers, chunking, query replies.</p>
+<p>Pure and synchronous; no sockets and no color math.</p>
+<p><a id="aioddp.protocol.DDPHeader"></a></p>
+<h2 id="ddpheader-objects">DDPHeader Objects<a class="headerlink" href="#ddpheader-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">DDPHeader</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Typed view of the 10-byte DDP header. <code>encode</code> does not validate; use <code>build_header</code>.</p>
+<p><a id="aioddp.protocol.DDPHeader.version"></a></p>
+<h4 id="version">version<a class="headerlink" href="#version" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nd">@property</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">version</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</span></code></pre></div>
+<p>Protocol version from the top two flag bits.</p>
+<p><a id="aioddp.protocol.DDPHeader.push"></a></p>
+<h4 id="push">push<a class="headerlink" href="#push" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nd">@property</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">push</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+<p>Whether the push (latch) flag is set.</p>
+<p><a id="aioddp.protocol.DDPHeader.query"></a></p>
+<h4 id="query_1">query<a class="headerlink" href="#query_1" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nd">@property</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">query</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+<p>Whether the query flag is set (a request for the destination's data).</p>
+<p><a id="aioddp.protocol.DDPHeader.reply"></a></p>
+<h4 id="reply">reply<a class="headerlink" href="#reply" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nd">@property</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">reply</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+<p>Whether the reply flag is set (a controller answering a query).</p>
+<p><a id="aioddp.protocol.DDPHeader.encode"></a></p>
+<h4 id="encode">encode<a class="headerlink" href="#encode" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bytes</span>
+</span></code></pre></div>
+<p>Pack the header into 10 wire bytes.</p>
+<p><a id="aioddp.protocol.DDPHeader.decode"></a></p>
+<h4 id="decode">decode<a class="headerlink" href="#decode" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nd">@classmethod</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DDPHeader</span>
+</span></code></pre></div>
+<p>Parse the first 10 bytes of <code>data</code>; raises <code>ValueError</code> if it is shorter.</p>
+<p><a id="aioddp.protocol.build_header"></a></p>
+<h4 id="build_header">build_header<a class="headerlink" href="#build_header" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">build_header</span><span class="p">(</span><span class="o">*</span><span class="p">,</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>                 <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>                 <span class="n">length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>                 <span class="n">sequence</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>                 <span class="n">data_type</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>                 <span class="n">push</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>                 <span class="n">destination</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DESTINATION_DEFAULT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span>
+</span></code></pre></div>
+<p>Build a validated v1 header; flags are version 1 plus push when requested.</p>
+<p><a id="aioddp.protocol.SequenceCounter"></a></p>
+<h2 id="sequencecounter-objects">SequenceCounter Objects<a class="headerlink" href="#sequencecounter-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">SequenceCounter</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Per-sender DDP sequence number cycling 1 to 15; one number per packet.</p>
+<p><a id="aioddp.protocol.SequenceCounter.current"></a></p>
+<h4 id="current">current<a class="headerlink" href="#current" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="nd">@property</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">current</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</span></code></pre></div>
+<p>The number the next call to <code>next</code> returns.</p>
+<p><a id="aioddp.protocol.SequenceCounter.next"></a></p>
+<h4 id="next">next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">next</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</span></code></pre></div>
+<p>Return the current number, then advance (15 wraps to 1).</p>
+<p><a id="aioddp.protocol.chunk_data"></a></p>
+<h4 id="chunk_data">chunk_data<a class="headerlink" href="#chunk_data" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">chunk_data</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>               <span class="n">base_offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>               <span class="n">max_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">MAX_DATA_LEN</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">]]</span>
+</span></code></pre></div>
+<p>Split <code>data</code> into <code>(offset, chunk)</code> pairs of at most <code>max_len</code> bytes, ignoring pixel boundaries.</p>
+<p><a id="aioddp.protocol.build_packets"></a></p>
+<h4 id="build_packets">build_packets<a class="headerlink" href="#build_packets" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">build_packets</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>                  <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>                  <span class="n">base_offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>                  <span class="n">data_type</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>                  <span class="n">sequence</span><span class="p">:</span> <span class="n">SequenceCounter</span><span class="p">,</span>
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>                  <span class="n">push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a>                  <span class="n">destination</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DESTINATION_DEFAULT</span><span class="p">,</span>
+</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>                  <span class="n">max_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">MAX_DATA_LEN</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]</span>
+</span></code></pre></div>
+<p>Build every packet of one frame; push only on the last. The counter advances only on success.</p>
+<p><a id="aioddp.protocol.build_push_packet"></a></p>
+<h4 id="build_push_packet">build_push_packet<a class="headerlink" href="#build_push_packet" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">build_push_packet</span><span class="p">(</span><span class="o">*</span><span class="p">,</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>                      <span class="n">sequence</span><span class="p">:</span> <span class="n">SequenceCounter</span><span class="p">,</span>
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>                      <span class="n">data_type</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>                      <span class="n">destination</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DESTINATION_DEFAULT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span>
+</span></code></pre></div>
+<p>Header-only latch packet: offset 0, length 0, push set.</p>
+<p><a id="aioddp.protocol.build_query_packet"></a></p>
+<h4 id="build_query_packet">build_query_packet<a class="headerlink" href="#build_query_packet" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">build_query_packet</span><span class="p">(</span><span class="o">*</span><span class="p">,</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>                       <span class="n">sequence</span><span class="p">:</span> <span class="n">SequenceCounter</span><span class="p">,</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>                       <span class="n">destination</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>                       <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>                       <span class="n">length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span>
+</span></code></pre></div>
+<p>Header-only query for <code>destination</code> (e.g. 250 config, 251 status); the controller answers with a reply.</p>
+<p><a id="aioddp.protocol.decode_json_document"></a></p>
+<h4 id="decode_json_document">decode_json_document<a class="headerlink" href="#decode_json_document" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">decode_json_document</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>                         <span class="n">what</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Parse a JSON object reply; trailing NULs and whitespace are ignored, an empty payload is <code>None</code>.</p>
+<p><code>what</code> names the source in the <code>DDPQueryError</code> raised for invalid JSON or a non-object top level.</p>
+<p><a id="aioddp.discovery"></a></p>
+<h1 id="aioddpdiscovery">aioddp.discovery<a class="headerlink" href="#aioddpdiscovery" title="Permanent link">&para;</a></h1>
+<p>Read a controller's output layout from the DDP JSON config query, or parse a config document fetched elsewhere.</p>
+<p>The config document follows the DDP spec (<code>{"config": {"ports": [{"port", "ts", "l", "ss"}, ...]}}</code>) plus the
+optional extensions <code>p</code> (port number), <code>rev</code>, <code>proto</code>, and <code>conv</code>. <code>parse_config</code> also accepts a document
+the caller fetched by other means, such as a controller's HTTP API. Stdlib only.</p>
+<p><a id="aioddp.discovery.OutputInfo"></a></p>
+<h2 id="outputinfo-objects">OutputInfo Objects<a class="headerlink" href="#outputinfo-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">OutputInfo</span><span class="p">()</span>
+</span></code></pre></div>
+<p>One controller output mapped into the flat pixel buffer.</p>
+<p><a id="aioddp.discovery.OutputInfo.index"></a></p>
+<h4 id="index">index<a class="headerlink" href="#index" title="Permanent link">&para;</a></h4>
+<p>controller output number as reported, 0-based</p>
+<p><a id="aioddp.discovery.OutputInfo.start"></a></p>
+<h4 id="start">start<a class="headerlink" href="#start" title="Permanent link">&para;</a></h4>
+<p>first pixel in the flat buffer, 0-based</p>
+<p><a id="aioddp.discovery.OutputInfo.length"></a></p>
+<h4 id="length">length<a class="headerlink" href="#length" title="Permanent link">&para;</a></h4>
+<p>pixels; 0 means the output is unused</p>
+<p><a id="aioddp.discovery.ControllerLayout"></a></p>
+<h2 id="controllerlayout-objects">ControllerLayout Objects<a class="headerlink" href="#controllerlayout-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">ControllerLayout</span><span class="p">()</span>
+</span></code></pre></div>
+<p>What a controller reports about its outputs, and enough to build a <code>Strip</code> and <code>Segment</code> list.</p>
+<p><a id="aioddp.discovery.ControllerLayout.source"></a></p>
+<h4 id="source">source<a class="headerlink" href="#source" title="Permanent link">&para;</a></h4>
+<p>where the document came from: "ddp" for the UDP query, else whatever the caller passed</p>
+<p><a id="aioddp.discovery.ControllerLayout.pixel_count"></a></p>
+<h4 id="pixel_count">pixel_count<a class="headerlink" href="#pixel_count" title="Permanent link">&para;</a></h4>
+<p>end of the last active output; 0 when no output has pixels</p>
+<p><a id="aioddp.discovery.ControllerLayout.channels"></a></p>
+<h4 id="channels">channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h4>
+<p>channels per input pixel used for the slot math</p>
+<p><a id="aioddp.discovery.ControllerLayout.protocol"></a></p>
+<h4 id="protocol">protocol<a class="headerlink" href="#protocol" title="Permanent link">&para;</a></h4>
+<p>"ddp" | "artnet" | "e131" from "proto"</p>
+<p><a id="aioddp.discovery.ControllerLayout.config"></a></p>
+<h4 id="config">config<a class="headerlink" href="#config" title="Permanent link">&para;</a></h4>
+<p>the inner "config" object, as received</p>
+<p><a id="aioddp.discovery.ControllerLayout.status"></a></p>
+<h4 id="status">status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h4>
+<p>the inner "status" object, when fetched</p>
+<p><a id="aioddp.discovery.ControllerLayout.active_outputs"></a></p>
+<h4 id="active_outputs">active_outputs<a class="headerlink" href="#active_outputs" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="nd">@property</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">active_outputs</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">OutputInfo</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+</span></code></pre></div>
+<p>Outputs with at least one pixel.</p>
+<p><a id="aioddp.discovery.ControllerLayout.data_type"></a></p>
+<h4 id="data_type">data_type<a class="headerlink" href="#data_type" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="nd">@property</span>
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">data_type</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">DataType</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>The aioddp data type matching <code>channels</code>, or <code>None</code> when aioddp cannot drive it.</p>
+<p><a id="aioddp.discovery.ControllerLayout.segments"></a></p>
+<h4 id="segments">segments<a class="headerlink" href="#segments" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">segments</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Segment</span><span class="p">]</span>
+</span></code></pre></div>
+<p>One segment per active output, named like the controller's 1-based UI; the controller applies <code>rev</code>.</p>
+<p><a id="aioddp.discovery.parse_config"></a></p>
+<h4 id="parse_config">parse_config<a class="headerlink" href="#parse_config" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">parse_config</span><span class="p">(</span><span class="n">document</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>                 <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>                 <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>                 <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-35-5"><a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a>                 <span class="n">status</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ControllerLayout</span>
+</span></code></pre></div>
+<p>Build a layout from a config document (wrapped or inner) and an optional status document.</p>
+<p><a id="aioddp.discovery.query_layout"></a></p>
+<h4 id="query_layout">query_layout<a class="headerlink" href="#query_layout" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">query_layout</span><span class="p">(</span>
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>        <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>        <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>        <span class="n">port</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DDP_PORT</span><span class="p">,</span>
+</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>        <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-36-6"><a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a>        <span class="n">bind_host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ControllerLayout</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Ask the controller over DDP (destination 250, then 251 best effort); <code>None</code> if config gets no answer.</p>
+<p><a id="aioddp.discovery.discover"></a></p>
+<h4 id="discover">discover<a class="headerlink" href="#discover" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">discover</span><span class="p">(</span><span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>                   <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>                   <span class="n">port</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DDP_PORT</span><span class="p">,</span>
+</span><span id="__span-37-4"><a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a>                   <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ControllerLayout</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Ask the controller over DDP; <code>None</code> if it does not answer the config query within <code>timeout</code>.</p>
+<p><a id="aioddp.const"></a></p>
+<h1 id="aioddpconst">aioddp.const<a class="headerlink" href="#aioddpconst" title="Permanent link">&para;</a></h1>
+<p>DDP wire constants, data types, and library defaults.</p>
+<p><a id="aioddp.const.MAX_DATA_LEN"></a></p>
+<h4 id="max_data_len">MAX_DATA_LEN<a class="headerlink" href="#max_data_len" title="Permanent link">&para;</a></h4>
+<p>DDP recommended max payload; 480 RGB or 360 RGBW pixels</p>
+<p><a id="aioddp.const.MAX_OFFSET"></a></p>
+<h4 id="max_offset">MAX_OFFSET<a class="headerlink" href="#max_offset" title="Permanent link">&para;</a></h4>
+<p>32-bit data offset</p>
+<p><a id="aioddp.const.HEADER_FORMAT"></a></p>
+<h4 id="header_format">HEADER_FORMAT<a class="headerlink" href="#header_format" title="Permanent link">&para;</a></h4>
+<p>flags, sequence, data type, destination, offset, length</p>
+<p><a id="aioddp.const.SEQUENCE_MAX"></a></p>
+<h4 id="sequence_max">SEQUENCE_MAX<a class="headerlink" href="#sequence_max" title="Permanent link">&para;</a></h4>
+<p>low 4 bits; 0 means "sequence unused"</p>
+<p><a id="aioddp.const.DESTINATION_DEFAULT"></a></p>
+<h4 id="destination_default">DESTINATION_DEFAULT<a class="headerlink" href="#destination_default" title="Permanent link">&para;</a></h4>
+<p>default output device</p>
+<p><a id="aioddp.const.DESTINATION_CONTROL"></a></p>
+<h4 id="destination_control">DESTINATION_CONTROL<a class="headerlink" href="#destination_control" title="Permanent link">&para;</a></h4>
+<p>JSON control read/write</p>
+<p><a id="aioddp.const.DESTINATION_CONFIG"></a></p>
+<h4 id="destination_config">DESTINATION_CONFIG<a class="headerlink" href="#destination_config" title="Permanent link">&para;</a></h4>
+<p>JSON config, read with a query</p>
+<p><a id="aioddp.const.DESTINATION_STATUS"></a></p>
+<h4 id="destination_status">DESTINATION_STATUS<a class="headerlink" href="#destination_status" title="Permanent link">&para;</a></h4>
+<p>JSON status, read-only</p>
+<p><a id="aioddp.const.DATA_TYPE_LEGACY"></a></p>
+<h4 id="data_type_legacy">DATA_TYPE_LEGACY<a class="headerlink" href="#data_type_legacy" title="Permanent link">&para;</a></h4>
+<p>what older senders put in the data type byte</p>
+<p><a id="aioddp.const.DataType"></a></p>
+<h2 id="datatype-objects">DataType Objects<a class="headerlink" href="#datatype-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">DataType</span><span class="p">(</span><span class="n">Enum</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Pixel layout: channel count and the DDP data type byte (<code>C R TTT SSS</code>).</p>
+<p><a id="aioddp.const.DataType.RGB"></a></p>
+<h4 id="rgb">RGB<a class="headerlink" href="#rgb" title="Permanent link">&para;</a></h4>
+<p>type 001 (RGB), size 011 (8-bit)</p>
+<p><a id="aioddp.const.DataType.RGBW"></a></p>
+<h4 id="rgbw">RGBW<a class="headerlink" href="#rgbw" title="Permanent link">&para;</a></h4>
+<p>type 011 (RGBW), size 011 (8-bit)</p>
+<p><a id="aioddp.const.DataType.channels"></a></p>
+<h4 id="channels_1">channels<a class="headerlink" href="#channels_1" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="nd">@property</span>
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">channels</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</span></code></pre></div>
+<p>Bytes per pixel.</p>
+<p><a id="aioddp.const.DataType.wire_byte"></a></p>
+<h4 id="wire_byte">wire_byte<a class="headerlink" href="#wire_byte" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="nd">@property</span>
+</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">wire_byte</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</span></code></pre></div>
+<p>Data type byte sent in the DDP header.</p>
+<p><a id="aioddp.sender"></a></p>
+<h1 id="aioddpsender">aioddp.sender<a class="headerlink" href="#aioddpsender" title="Permanent link">&para;</a></h1>
+<p>DDPSender: the one object that owns a socket to a DDP controller.</p>
+<p>Every frame goes through <code>process_frame</code>, so the strip's brightness cap cannot be bypassed.</p>
+<p><a id="aioddp.sender.SenderStats"></a></p>
+<h2 id="senderstats-objects">SenderStats Objects<a class="headerlink" href="#senderstats-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">SenderStats</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Live counters for one sender; not reset by <code>close()</code>. <code>bytes_sent</code> counts whole datagrams.</p>
+<p><a id="aioddp.sender.SenderStats.last_send"></a></p>
+<h4 id="last_send">last_send<a class="headerlink" href="#last_send" title="Permanent link">&para;</a></h4>
+<p>loop.time()</p>
+<p><a id="aioddp.sender.SenderStats.last_frame"></a></p>
+<h4 id="last_frame">last_frame<a class="headerlink" href="#last_frame" title="Permanent link">&para;</a></h4>
+<p>copy of the shadow buffer at last send</p>
+<p><a id="aioddp.sender.DDPSender"></a></p>
+<h2 id="ddpsender-objects">DDPSender Objects<a class="headerlink" href="#ddpsender-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">DDPSender</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Async DDP sender for one strip. Bound to the loop it was opened on; not thread-safe.</p>
+<p><a id="aioddp.sender.DDPSender.is_open"></a></p>
+<h4 id="is_open">is_open<a class="headerlink" href="#is_open" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="nd">@property</span>
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">is_open</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+<p>Whether the socket is open and sends are accepted.</p>
+<p><a id="aioddp.sender.DDPSender.strip"></a></p>
+<h4 id="strip">strip<a class="headerlink" href="#strip" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="nd">@property</span>
+</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">strip</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Strip</span>
+</span></code></pre></div>
+<p>The strip this sender targets.</p>
+<p><a id="aioddp.sender.DDPSender.stats"></a></p>
+<h4 id="stats">stats<a class="headerlink" href="#stats" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="nd">@property</span>
+</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">stats</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">SenderStats</span>
+</span></code></pre></div>
+<p>The live stats object.</p>
+<p><a id="aioddp.sender.DDPSender.open"></a></p>
+<h4 id="open">open<a class="headerlink" href="#open" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">open</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Resolve the host and open the UDP socket; start keepalive if configured. No-op when open.</p>
+<p><a id="aioddp.sender.DDPSender.close"></a></p>
+<h4 id="close">close<a class="headerlink" href="#close" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Stop keepalive and close the socket. Idempotent; never blanks the lights.</p>
+<p><a id="aioddp.sender.DDPSender.send_frame"></a></p>
+<h4 id="send_frame">send_frame<a class="headerlink" href="#send_frame" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send_frame</span><span class="p">(</span><span class="n">pixels</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span>
+</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a>                     <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-48-3"><a id="__codelineno-48-3" name="__codelineno-48-3" href="#__codelineno-48-3"></a>                     <span class="n">segment</span><span class="p">:</span> <span class="n">Segment</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-48-4"><a id="__codelineno-48-4" name="__codelineno-48-4" href="#__codelineno-48-4"></a>                     <span class="n">brightness</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-48-5"><a id="__codelineno-48-5" name="__codelineno-48-5" href="#__codelineno-48-5"></a>                     <span class="n">push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Send canonical RGB(W) <code>pixels</code> to <code>segment</code> (whole strip by default) through the color pipeline.</p>
+<p><a id="aioddp.sender.DDPSender.fill"></a></p>
+<h4 id="fill_1">fill<a class="headerlink" href="#fill_1" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">fill</span><span class="p">(</span><span class="n">segment</span><span class="p">:</span> <span class="n">Segment</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>               <span class="n">color</span><span class="p">:</span> <span class="n">Color</span><span class="p">,</span>
+</span><span id="__span-49-3"><a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>               <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-49-4"><a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a>               <span class="n">brightness</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-49-5"><a id="__codelineno-49-5" name="__codelineno-49-5" href="#__codelineno-49-5"></a>               <span class="n">push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Send one solid <code>color</code> to <code>segment</code> (whole strip when <code>None</code>).</p>
+<p><a id="aioddp.sender.DDPSender.off"></a></p>
+<h4 id="off_1">off<a class="headerlink" href="#off_1" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">off</span><span class="p">(</span><span class="n">segment</span><span class="p">:</span> <span class="n">Segment</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">push</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Blank <code>segment</code> (whole strip by default).</p>
+<p><a id="aioddp.sender.DDPSender.release"></a></p>
+<h4 id="release">release<a class="headerlink" href="#release" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">release</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Stop keepalive resends until the next <code>send_frame</code>, <code>fill</code>, or <code>off</code>, which resumes them.</p>
+<p>For controllers with built-in effects that take over after a timeout when DDP data stops.
+Sends nothing and leaves the socket open; a no-op without keepalive or when closed.</p>
+<p><a id="aioddp.sender.DDPSender.push"></a></p>
+<h4 id="push_1">push<a class="headerlink" href="#push_1" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">push</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Send a header-only latch packet.</p>
+<p><a id="aioddp.sender.DDPSender.query"></a></p>
+<h4 id="query_2">query<a class="headerlink" href="#query_2" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">query</span><span class="p">(</span><span class="n">destination</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DESTINATION_CONFIG</span><span class="p">,</span>
+</span><span id="__span-53-2"><a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>                <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-53-3"><a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a>                <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Send a DDP query and return the reply's JSON object, or <code>None</code> on timeout or an empty reply.</p>
+<p>Raises <code>DDPQueryError</code> for a reply that is not a JSON object, <code>DDPSendError</code> if the sender is not open
+or closes while waiting, and <code>RuntimeError</code> if a query to <code>destination</code> is already pending.</p>
+<p><a id="aioddp.runner"></a></p>
+<h1 id="aioddprunner">aioddp.runner<a class="headerlink" href="#aioddprunner" title="Permanent link">&para;</a></h1>
+<p>EffectRunner: one asyncio task rendering an effect onto a segment at a target fps; and the <code>fade</code> helper.</p>
+<p><a id="aioddp.runner.RunnerStats"></a></p>
+<h2 id="runnerstats-objects">RunnerStats Objects<a class="headerlink" href="#runnerstats-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-54-2"><a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">RunnerStats</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Live counters for one runner.</p>
+<p><a id="aioddp.runner.RunnerStats.last_render_seconds"></a></p>
+<h4 id="last_render_seconds">last_render_seconds<a class="headerlink" href="#last_render_seconds" title="Permanent link">&para;</a></h4>
+<p>wall time of the most recent render call</p>
+<p><a id="aioddp.runner.EffectRunner"></a></p>
+<h2 id="effectrunner-objects">EffectRunner Objects<a class="headerlink" href="#effectrunner-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">EffectRunner</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Renders <code>effect</code> onto <code>segment</code> on an anchored schedule until stopped, until a static effect has sent
+its one frame, or until an error ends it (stored in <code>error</code>, logged, re-raised by <code>wait()</code>).</p>
+<p><a id="aioddp.runner.EffectRunner.running"></a></p>
+<h4 id="running">running<a class="headerlink" href="#running" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a><span class="nd">@property</span>
+</span><span id="__span-56-2"><a id="__codelineno-56-2" name="__codelineno-56-2" href="#__codelineno-56-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">running</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+<p>Whether the render task exists and has not finished.</p>
+<p><a id="aioddp.runner.EffectRunner.error"></a></p>
+<h4 id="error">error<a class="headerlink" href="#error" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a><span class="nd">@property</span>
+</span><span id="__span-57-2"><a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">error</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="ne">BaseException</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>The exception that ended the last run, if any.</p>
+<p><a id="aioddp.runner.EffectRunner.stats"></a></p>
+<h4 id="stats_1">stats<a class="headerlink" href="#stats_1" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="nd">@property</span>
+</span><span id="__span-58-2"><a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">stats</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">RunnerStats</span>
+</span></code></pre></div>
+<p>The live stats object.</p>
+<p><a id="aioddp.runner.EffectRunner.start"></a></p>
+<h4 id="start_1">start<a class="headerlink" href="#start_1" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Start the render task. The sender must be open; raises <code>RuntimeError</code> if already running.</p>
+<p><a id="aioddp.runner.EffectRunner.stop"></a></p>
+<h4 id="stop">stop<a class="headerlink" href="#stop" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Cancel the render task and wait for it to finish. Idempotent; never blanks the segment.</p>
+<p><a id="aioddp.runner.EffectRunner.update"></a></p>
+<h4 id="update">update<a class="headerlink" href="#update" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="o">*</span><span class="p">,</span>
+</span><span id="__span-61-2"><a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a>           <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-61-3"><a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a>           <span class="n">brightness</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-61-4"><a id="__codelineno-61-4" name="__codelineno-61-4" href="#__codelineno-61-4"></a>           <span class="n">fps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Replace params (re-validated, merged with defaults), brightness, and/or fps from the next frame on.</p>
+<p>All values are validated before any is applied, so a bad value leaves the runner unchanged.</p>
+<p><a id="aioddp.runner.EffectRunner.wait"></a></p>
+<h4 id="wait">wait<a class="headerlink" href="#wait" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wait</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Return when the render task finishes; re-raise the error that ended it, if any.</p>
+<p><a id="aioddp.runner.fade"></a></p>
+<h4 id="fade">fade<a class="headerlink" href="#fade" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">fade</span><span class="p">(</span><span class="n">sender</span><span class="p">:</span> <span class="n">DDPSender</span><span class="p">,</span>
+</span><span id="__span-63-2"><a id="__codelineno-63-2" name="__codelineno-63-2" href="#__codelineno-63-2"></a>               <span class="n">segment</span><span class="p">:</span> <span class="n">Segment</span><span class="p">,</span>
+</span><span id="__span-63-3"><a id="__codelineno-63-3" name="__codelineno-63-3" href="#__codelineno-63-3"></a>               <span class="n">start</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span>
+</span><span id="__span-63-4"><a id="__codelineno-63-4" name="__codelineno-63-4" href="#__codelineno-63-4"></a>               <span class="n">end</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span>
+</span><span id="__span-63-5"><a id="__codelineno-63-5" name="__codelineno-63-5" href="#__codelineno-63-5"></a>               <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-63-6"><a id="__codelineno-63-6" name="__codelineno-63-6" href="#__codelineno-63-6"></a>               <span class="n">duration</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-63-7"><a id="__codelineno-63-7" name="__codelineno-63-7" href="#__codelineno-63-7"></a>               <span class="n">fps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_FPS</span><span class="p">,</span>
+</span><span id="__span-63-8"><a id="__codelineno-63-8" name="__codelineno-63-8" href="#__codelineno-63-8"></a>               <span class="n">brightness</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Linearly interpolate <code>segment</code> from <code>start</code> to <code>end</code> over <code>duration</code> seconds.</p>
+<p>Sends <code>max(1, round(duration * fps))</code> frames on an anchored schedule, frame <code>i</code> of <code>n</code> at
+<code>i * duration / n</code>, so the last, exactly <code>end</code>, lands at <code>duration</code>.
+<code>duration &lt;= 0</code> sends <code>end</code> once. Cancelling leaves the last sent frame on the wire.</p>
+<p><a id="aioddp.color"></a></p>
+<h1 id="aioddpcolor">aioddp.color<a class="headerlink" href="#aioddpcolor" title="Permanent link">&para;</a></h1>
+<p>Color pipeline (brightness, gamma, cap, color order, reverse) and color helpers.</p>
+<p><code>process_frame</code> is the single enforcement point for a strip's brightness cap.</p>
+<p><a id="aioddp.color.process_frame"></a></p>
+<h4 id="process_frame">process_frame<a class="headerlink" href="#process_frame" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">process_frame</span><span class="p">(</span><span class="n">pixels</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span> <span class="o">|</span> <span class="nb">memoryview</span><span class="p">,</span>
+</span><span id="__span-64-2"><a id="__codelineno-64-2" name="__codelineno-64-2" href="#__codelineno-64-2"></a>                  <span class="n">strip</span><span class="p">:</span> <span class="n">Strip</span><span class="p">,</span>
+</span><span id="__span-64-3"><a id="__codelineno-64-3" name="__codelineno-64-3" href="#__codelineno-64-3"></a>                  <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-64-4"><a id="__codelineno-64-4" name="__codelineno-64-4" href="#__codelineno-64-4"></a>                  <span class="n">brightness</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-64-5"><a id="__codelineno-64-5" name="__codelineno-64-5" href="#__codelineno-64-5"></a>                  <span class="n">reverse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span>
+</span></code></pre></div>
+<p>Turn canonical pixel bytes into wire bytes for <code>strip</code>.</p>
+<p>Applies per-call brightness, gamma, and the strip's brightness cap via one lookup table,
+then reorders to the strip's color order and optionally reverses pixel order.</p>
+<p><a id="aioddp.color.parse_color"></a></p>
+<h4 id="parse_color">parse_color<a class="headerlink" href="#parse_color" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">parse_color</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Color</span>
+</span></code></pre></div>
+<p>Parse hex (<code>"ff8800"</code>, <code>"`ff8800`"</code>, <code>"ff8800ff"</code>), a 3/4-int sequence, or a named color.</p>
+<p><a id="aioddp.color.scale_color"></a></p>
+<h4 id="scale_color">scale_color<a class="headerlink" href="#scale_color" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">scale_color</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span>
+</span></code></pre></div>
+<p>Multiply every channel by <code>factor</code> (0.0 to 1.0), rounding.</p>
+<p><a id="aioddp.color.lerp_color"></a></p>
+<h4 id="lerp_color">lerp_color<a class="headerlink" href="#lerp_color" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">lerp_color</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Color</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Color</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span>
+</span></code></pre></div>
+<p>Linear interpolation from <code>a</code> (t=0) to <code>b</code> (t=1); both must have the same channel count.</p>
+<p><a id="aioddp.color.kelvin_to_rgb"></a></p>
+<h4 id="kelvin_to_rgb">kelvin_to_rgb<a class="headerlink" href="#kelvin_to_rgb" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">kelvin_to_rgb</span><span class="p">(</span><span class="n">kelvin</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RGB</span>
+</span></code></pre></div>
+<p>Approximate a color temperature as RGB (Tanner Helland). Clamped to 1000-40000 K; best 2000-6500 K.</p>
+<p><a id="aioddp.color.hsv_to_rgb"></a></p>
+<h4 id="hsv_to_rgb">hsv_to_rgb<a class="headerlink" href="#hsv_to_rgb" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">hsv_to_rgb</span><span class="p">(</span><span class="n">h</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RGB</span>
+</span></code></pre></div>
+<p>HSV in 0.0 to 1.0 to RGB 0 to 255, rounded.</p>
+<p><a id="aioddp.color.solid_pixels"></a></p>
+<h4 id="solid_pixels">solid_pixels<a class="headerlink" href="#solid_pixels" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">solid_pixels</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span>
+</span></code></pre></div>
+<p><code>length</code> pixels of <code>color</code> for a 3- or 4-channel strip; RGB is padded with W=0 on 4 channels.</p>
+<p><a id="aioddp.color.expand_rgb_to_rgbw"></a></p>
+<h4 id="expand_rgb_to_rgbw">expand_rgb_to_rgbw<a class="headerlink" href="#expand_rgb_to_rgbw" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-71-1"><a id="__codelineno-71-1" name="__codelineno-71-1" href="#__codelineno-71-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">expand_rgb_to_rgbw</span><span class="p">(</span><span class="n">pixels</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span>
+</span></code></pre></div>
+<p>Insert W=0 after every RGB triplet.</p>
+<p><a id="aioddp.effects.breathe"></a></p>
+<h1 id="aioddpeffectsbreathe">aioddp.effects.breathe<a class="headerlink" href="#aioddpeffectsbreathe" title="Permanent link">&para;</a></h1>
+<p>breathe: whole segment fades between <code>min_level</code> and full on a cosine.</p>
+<p><a id="aioddp.effects.solid"></a></p>
+<h1 id="aioddpeffectssolid">aioddp.effects.solid<a class="headerlink" href="#aioddpeffectssolid" title="Permanent link">&para;</a></h1>
+<p>solid: one color on every pixel (static).</p>
+<p><a id="aioddp.effects.chase"></a></p>
+<h1 id="aioddpeffectschase">aioddp.effects.chase<a class="headerlink" href="#aioddpeffectschase" title="Permanent link">&para;</a></h1>
+<p>chase: theater chase, lit pixels every <code>spacing</code> moving at <code>speed</code> pixels per second.</p>
+<p><a id="aioddp.effects"></a></p>
+<h1 id="aioddpeffects">aioddp.effects<a class="headerlink" href="#aioddpeffects" title="Permanent link">&para;</a></h1>
+<p>Effect registry. Names are stable public API: hass-ddp uses them verbatim as Home Assistant effect values.</p>
+<p><a id="aioddp.effects.EffectInfo"></a></p>
+<h2 id="effectinfo-objects">EffectInfo Objects<a class="headerlink" href="#effectinfo-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-72-1"><a id="__codelineno-72-1" name="__codelineno-72-1" href="#__codelineno-72-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">EffectInfo</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Description of one registered effect, for the CLI <code>effects</code> listing and hass-ddp's effect list.</p>
+<p><a id="aioddp.effects.EffectInfo.color_param"></a></p>
+<h4 id="color_param">color_param<a class="headerlink" href="#color_param" title="Permanent link">&para;</a></h4>
+<p>the param a single color (e.g. Home Assistant's rgb_color) drives, if any</p>
+<p><a id="aioddp.effects.EffectInfo.color_params"></a></p>
+<h4 id="color_params">color_params<a class="headerlink" href="#color_params" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-73-1"><a id="__codelineno-73-1" name="__codelineno-73-1" href="#__codelineno-73-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">color_params</span><span class="p">(</span><span class="n">rgb</span><span class="p">:</span> <span class="n">RGB</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+</span></code></pre></div>
+<p>Params that put one <code>rgb</code> color on this effect; empty when the effect has no color to drive.</p>
+<p><a id="aioddp.effects.get_effect"></a></p>
+<h4 id="get_effect">get_effect<a class="headerlink" href="#get_effect" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-74-1"><a id="__codelineno-74-1" name="__codelineno-74-1" href="#__codelineno-74-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_effect</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">[</span><span class="n">Effect</span><span class="p">]</span>
+</span></code></pre></div>
+<p>Look up an effect class by registry name.</p>
+<p><a id="aioddp.effects.list_effects"></a></p>
+<h4 id="list_effects">list_effects<a class="headerlink" href="#list_effects" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-75-1"><a id="__codelineno-75-1" name="__codelineno-75-1" href="#__codelineno-75-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">list_effects</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">EffectInfo</span><span class="p">]</span>
+</span></code></pre></div>
+<p>Every registered effect, in registry order.</p>
+<p><a id="aioddp.effects.base"></a></p>
+<h1 id="aioddpeffectsbase">aioddp.effects.base<a class="headerlink" href="#aioddpeffectsbase" title="Permanent link">&para;</a></h1>
+<p>Effect contract, parameter schema, and parameter validation.</p>
+<p>An effect turns <code>(length, t, params, seed)</code> into exactly <code>length * 3</code> canonical RGB bytes. It knows nothing
+about strips, gamma, or the brightness cap. <code>render</code> receives params that already went through
+<code>validate_params</code> (defaults merged, values coerced and range-checked).</p>
+<p><a id="aioddp.effects.base.ParamSpec"></a></p>
+<h2 id="paramspec-objects">ParamSpec Objects<a class="headerlink" href="#paramspec-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-76-1"><a id="__codelineno-76-1" name="__codelineno-76-1" href="#__codelineno-76-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">ParamSpec</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Schema for one effect parameter. <code>min</code>/<code>max</code> are inclusive and apply to <code>int</code> and <code>float</code>.</p>
+<p><a id="aioddp.effects.base.Effect"></a></p>
+<h2 id="effect-objects">Effect Objects<a class="headerlink" href="#effect-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-77-1"><a id="__codelineno-77-1" name="__codelineno-77-1" href="#__codelineno-77-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">Effect</span><span class="p">(</span><span class="n">Protocol</span><span class="p">)</span>
+</span></code></pre></div>
+<p>What the runner, CLI, and hass-ddp rely on. See the module docstring for the render contract.</p>
+<p><a id="aioddp.effects.base.Effect.static"></a></p>
+<h4 id="static">static<a class="headerlink" href="#static" title="Permanent link">&para;</a></h4>
+<p>True: render once, no loop</p>
+<p><a id="aioddp.effects.base.BaseEffect"></a></p>
+<h2 id="baseeffect-objects">BaseEffect Objects<a class="headerlink" href="#baseeffect-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-78-1"><a id="__codelineno-78-1" name="__codelineno-78-1" href="#__codelineno-78-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">BaseEffect</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Convenience base for built-in effects: not static, no cross-param rules.</p>
+<p>Subclasses may override <code>check_params</code> to enforce rules spanning several params; <code>validate_params</code>
+calls it (when present) after per-param coercion. Effects that don't subclass this still satisfy
+<code>Effect</code> and simply get no cross-param check.</p>
+<p><a id="aioddp.effects.base.BaseEffect.color_param"></a></p>
+<h4 id="color_param_1">color_param<a class="headerlink" href="#color_param_1" title="Permanent link">&para;</a></h4>
+<p>the param one user-picked color drives; see EffectInfo.color_params</p>
+<p><a id="aioddp.effects.base.BaseEffect.check_params"></a></p>
+<h4 id="check_params">check_params<a class="headerlink" href="#check_params" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-79-1"><a id="__codelineno-79-1" name="__codelineno-79-1" href="#__codelineno-79-1"></a><span class="nd">@classmethod</span>
+</span><span id="__span-79-2"><a id="__codelineno-79-2" name="__codelineno-79-2" href="#__codelineno-79-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">check_params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Raise <code>EffectError</code> naming the offending param when a cross-param rule fails.</p>
+<p><a id="aioddp.effects.base.validate_params"></a></p>
+<h4 id="validate_params">validate_params<a class="headerlink" href="#validate_params" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-80-1"><a id="__codelineno-80-1" name="__codelineno-80-1" href="#__codelineno-80-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">validate_params</span><span class="p">(</span><span class="n">effect</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">Effect</span><span class="p">],</span>
+</span><span id="__span-80-2"><a id="__codelineno-80-2" name="__codelineno-80-2" href="#__codelineno-80-2"></a>                    <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+</span></code></pre></div>
+<p>Merge defaults, reject unknown keys, coerce and range-check every param.</p>
+<p>Strings are accepted for every kind so CLI <code>--param key=value</code> input works: numbers (<code>"1.5"</code>, <code>"3"</code>),
+bools (<code>"true"</code>/<code>"false"</code>), hex or named colors, and comma-separated color lists. Colors normalize to
+RGB tuples; RGBW is rejected. Raises <code>EffectError</code> naming the param on any failure.</p>
+<p><a id="aioddp.effects.rainbow"></a></p>
+<h1 id="aioddpeffectsrainbow">aioddp.effects.rainbow<a class="headerlink" href="#aioddpeffectsrainbow" title="Permanent link">&para;</a></h1>
+<p>rainbow: hue sweeps along the segment and rotates over time.</p>
+<p><a id="aioddp.effects.rainbow.WHEEL_SIZE"></a></p>
+<h4 id="wheel_size">WHEEL_SIZE<a class="headerlink" href="#wheel_size" title="Permanent link">&para;</a></h4>
+<p>6 hue sextants x 256 steps</p>
+<p><a id="aioddp.effects.palette"></a></p>
+<h1 id="aioddpeffectspalette">aioddp.effects.palette<a class="headerlink" href="#aioddpeffectspalette" title="Permanent link">&para;</a></h1>
+<p>palette: repeating blocks of fixed colors (static).</p>
+<p><a id="aioddp.effects.twinkle"></a></p>
+<h1 id="aioddpeffectstwinkle">aioddp.effects.twinkle<a class="headerlink" href="#aioddpeffectstwinkle" title="Permanent link">&para;</a></h1>
+<p>twinkle: a seeded subset of pixels ramps between <code>base_color</code> and <code>sparkle_color</code> on a triangle wave.</p>
+<p><a id="aioddp.strip"></a></p>
+<h1 id="aioddpstrip">aioddp.strip<a class="headerlink" href="#aioddpstrip" title="Permanent link">&para;</a></h1>
+<p>Immutable, validated Strip and Segment configuration models.</p>
+<p><a id="aioddp.strip.Segment"></a></p>
+<h2 id="segment-objects">Segment Objects<a class="headerlink" href="#segment-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-81-1"><a id="__codelineno-81-1" name="__codelineno-81-1" href="#__codelineno-81-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-81-2"><a id="__codelineno-81-2" name="__codelineno-81-2" href="#__codelineno-81-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">Segment</span><span class="p">()</span>
+</span></code></pre></div>
+<p>A named pixel range <code>[start, start + length)</code>; <code>reverse</code> flips pixel order on the wire.</p>
+<p><a id="aioddp.strip.Segment.end"></a></p>
+<h4 id="end">end<a class="headerlink" href="#end" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-82-1"><a id="__codelineno-82-1" name="__codelineno-82-1" href="#__codelineno-82-1"></a><span class="nd">@property</span>
+</span><span id="__span-82-2"><a id="__codelineno-82-2" name="__codelineno-82-2" href="#__codelineno-82-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">end</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</span></code></pre></div>
+<p>Exclusive end pixel index.</p>
+<p><a id="aioddp.strip.Strip"></a></p>
+<h2 id="strip-objects">Strip Objects<a class="headerlink" href="#strip-objects" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-83-1"><a id="__codelineno-83-1" name="__codelineno-83-1" href="#__codelineno-83-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-83-2"><a id="__codelineno-83-2" name="__codelineno-83-2" href="#__codelineno-83-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">Strip</span><span class="p">()</span>
+</span></code></pre></div>
+<p>One DDP receiver output: where to send, how many pixels, and how to encode them.</p>
+<p><a id="aioddp.strip.Strip.color_order"></a></p>
+<h4 id="color_order">color_order<a class="headerlink" href="#color_order" title="Permanent link">&para;</a></h4>
+<p>empty: the data type's canonical order, RGB or RGBW</p>
+<p><a id="aioddp.strip.Strip.channels"></a></p>
+<h4 id="channels_2">channels<a class="headerlink" href="#channels_2" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-84-1"><a id="__codelineno-84-1" name="__codelineno-84-1" href="#__codelineno-84-1"></a><span class="nd">@property</span>
+</span><span id="__span-84-2"><a id="__codelineno-84-2" name="__codelineno-84-2" href="#__codelineno-84-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">channels</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</span></code></pre></div>
+<p>Bytes per pixel.</p>
+<p><a id="aioddp.strip.Strip.frame_size"></a></p>
+<h4 id="frame_size">frame_size<a class="headerlink" href="#frame_size" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-85-1"><a id="__codelineno-85-1" name="__codelineno-85-1" href="#__codelineno-85-1"></a><span class="nd">@property</span>
+</span><span id="__span-85-2"><a id="__codelineno-85-2" name="__codelineno-85-2" href="#__codelineno-85-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">frame_size</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</span></code></pre></div>
+<p>Bytes in a full-strip frame.</p>
+<p><a id="aioddp.strip.Strip.wire_data_type"></a></p>
+<h4 id="wire_data_type">wire_data_type<a class="headerlink" href="#wire_data_type" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-86-1"><a id="__codelineno-86-1" name="__codelineno-86-1" href="#__codelineno-86-1"></a><span class="nd">@property</span>
+</span><span id="__span-86-2"><a id="__codelineno-86-2" name="__codelineno-86-2" href="#__codelineno-86-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">wire_data_type</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</span></code></pre></div>
+<p>Data type byte for the header: the override if set, else the data type's own byte.</p>
+<p><a id="aioddp.strip.Strip.channel_map"></a></p>
+<h4 id="channel_map">channel_map<a class="headerlink" href="#channel_map" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-87-1"><a id="__codelineno-87-1" name="__codelineno-87-1" href="#__codelineno-87-1"></a><span class="nd">@property</span>
+</span><span id="__span-87-2"><a id="__codelineno-87-2" name="__codelineno-87-2" href="#__codelineno-87-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">channel_map</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+</span></code></pre></div>
+<p>For each output channel position, the canonical channel index it reads from.</p>
+<p><a id="aioddp.strip.Strip.full_segment"></a></p>
+<h4 id="full_segment">full_segment<a class="headerlink" href="#full_segment" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-88-1"><a id="__codelineno-88-1" name="__codelineno-88-1" href="#__codelineno-88-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">full_segment</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"all"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Segment</span>
+</span></code></pre></div>
+<p>A segment covering the whole strip.</p>
+<p><a id="aioddp.strip.Strip.validate_segment"></a></p>
+<h4 id="validate_segment">validate_segment<a class="headerlink" href="#validate_segment" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-89-1"><a id="__codelineno-89-1" name="__codelineno-89-1" href="#__codelineno-89-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">validate_segment</span><span class="p">(</span><span class="n">segment</span><span class="p">:</span> <span class="n">Segment</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Raise <code>ConfigError</code> if <code>segment</code> extends past the end of the strip.</p>
+<p><a id="aioddp.strip.Strip.byte_offset"></a></p>
+<h4 id="byte_offset">byte_offset<a class="headerlink" href="#byte_offset" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-90-1"><a id="__codelineno-90-1" name="__codelineno-90-1" href="#__codelineno-90-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">byte_offset</span><span class="p">(</span><span class="n">segment</span><span class="p">:</span> <span class="n">Segment</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</span></code></pre></div>
+<p>Byte offset of <code>segment</code> in the receiver's buffer.</p>
+<p><a id="aioddp.strip.Strip.byte_length"></a></p>
+<h4 id="byte_length">byte_length<a class="headerlink" href="#byte_length" title="Permanent link">&para;</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-91-1"><a id="__codelineno-91-1" name="__codelineno-91-1" href="#__codelineno-91-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">byte_length</span><span class="p">(</span><span class="n">segment</span><span class="p">:</span> <span class="n">Segment</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</span></code></pre></div>
+<p>Bytes in a frame for <code>segment</code>.</p>
+
+
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../../compatibility/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Controller compatibility">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Controller compatibility
+              </div>
+            </div>
+          </a>
+        
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; Anthony Mattas
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/amattas/aioddp" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["content.code.annotate","content.code.copy","content.footnote.tooltips","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.sections","navigation.top","navigation.tracking","search.highlight"],"search":"../../assets/javascripts/workers/search.b6b7e04f.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"alias":true,"default":"latest","provider":"mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7f30b55.min.js"></script>
+      
+    
+  </body>
+</html>
