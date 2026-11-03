@@ -30,3 +30,6 @@ config.yaml
 .cache/
 docs/api/reference.md
 coverage.json
+
+# Local AI tooling state (hygiene standard)
+.claude/
