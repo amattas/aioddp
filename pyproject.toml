@@ -35,6 +35,7 @@ dev = [
     "pre-commit==4.7.0",
     "build==1.6.1",
     "bandit==1.9.4",
+    "hypothesis==6.170.12",
     # CI installs .[dev] only and the test suite imports aioddp.cli; keep in sync with [cli].
     "click==8.5.0",
     "pyyaml==6.0.3",
@@ -78,8 +79,13 @@ exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
 [tool.mypy]
 # Pinned to the project Python floor so results don't drift with the runner's interpreter.
 python_version = "3.12"
-files = ["src", "tests", "scripts"]
+files = ["src", "tests", "scripts", "fuzz"]
 strict = true
 warn_unused_configs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+# atheris is installed only in the ClusterFuzzLite build image (.clusterfuzzlite/), never in the dev env.
+module = ["atheris"]
+ignore_missing_imports = true
