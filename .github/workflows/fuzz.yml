@@ -1,0 +1,22 @@
+# Fuzz: deep ClusterFuzzLite batch run of every fuzz/fuzz_*.py target (dispatch only; PRs fuzz in Checks).
+# A crash here is filed by a human per the fleet standard (mattas-net/standards, private; ci-cd/fuzzing).
+name: Fuzz
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: fuzz-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    uses: mattas-net/.github/.github/workflows/fuzz-batch.yml@main
+    permissions:
+      contents: read
+      actions: read
+    with:
+      language: python
