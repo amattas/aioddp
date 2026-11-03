@@ -1,5 +1,6 @@
-# Fuzz: deep ClusterFuzzLite batch run of every fuzz/fuzz_*.py target (dispatch only; PRs fuzz in Checks).
-# A crash here is filed by a human per the fleet standard (mattas-net/standards, private; ci-cd/fuzzing).
+# Fuzz: dispatch-only deep run of the ClusterFuzzLite targets (batch mode,
+# 3600 s per target, total clamped to 19800 s). PR fuzzing runs inside Checks
+# (`fuzz: true`). Finding handling: mattas-net/standards ci-cd/fuzzing.
 name: Fuzz
 
 on:
