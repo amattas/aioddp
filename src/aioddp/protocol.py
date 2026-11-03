@@ -6,6 +6,7 @@ Pure and synchronous; no sockets and no color math.
 from __future__ import annotations
 
 import json
+import math
 import struct
 from dataclasses import dataclass
 from typing import Any
@@ -185,6 +186,13 @@ def _reject_constant(name: str) -> Any:
     raise ValueError(f"{name} is not valid JSON")
 
 
+def _finite_float(text: str) -> float:
+    value = float(text)
+    if not math.isfinite(value):  # 1e400 overflows to inf: the Infinity literal by another spelling
+        raise ValueError(f"{text[:40]} is out of range for a JSON number")
+    return value
+
+
 def decode_json_document(payload: bytes, *, what: str) -> dict[str, Any] | None:
     """Parse a JSON object reply; trailing NULs and whitespace are ignored, an empty payload is ``None``.
 
@@ -194,9 +202,11 @@ def decode_json_document(payload: bytes, *, what: str) -> dict[str, Any] | None:
     if not text:
         return None
     try:
-        document = json.loads(text, parse_constant=_reject_constant)
-    except ValueError as exc:  # JSONDecodeError, UnicodeDecodeError, and NaN/Infinity
+        document = json.loads(text, parse_constant=_reject_constant, parse_float=_finite_float)
+    except ValueError as exc:  # JSONDecodeError, UnicodeDecodeError, and NaN/Infinity (literal or overflowed)
         raise DDPQueryError(f"{what} did not return valid JSON: {exc}") from exc
+    except RecursionError as exc:  # a reply reassembled from many packets can nest arbitrarily deep
+        raise DDPQueryError(f"{what} returned JSON nested too deeply") from exc
     if not isinstance(document, dict):
         raise DDPQueryError(f"{what} returned JSON {type(document).__name__}, expected an object")
     return document

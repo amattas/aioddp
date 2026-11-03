@@ -105,8 +105,23 @@ def test_decode_flag_properties(flags: int, query: bool, reply: bool, push: bool
         (b'{"a": NaN}', DDPQueryError),
         (b'{"a": [Infinity]}', DDPQueryError),
         (b'{"a": -Infinity}', DDPQueryError),
+        (b'{"a": [1e400, -1e400]}', DDPQueryError),
+        (b'{"a": ' + b"[" * 200_000 + b"]" * 200_000 + b"}", DDPQueryError),
     ],
-    ids=["nul-padded", "whitespace", "only-nul", "empty", "bad-json", "bad-utf8", "not-object", "nan", "inf", "-inf"],
+    ids=[
+        "nul-padded",
+        "whitespace",
+        "only-nul",
+        "empty",
+        "bad-json",
+        "bad-utf8",
+        "not-object",
+        "nan",
+        "inf",
+        "-inf",
+        "float-overflow",
+        "deep-nesting",
+    ],
 )
 def test_decode_json_document(payload: bytes, expected: dict[str, object] | None | type[Exception]) -> None:
     if isinstance(expected, type):
