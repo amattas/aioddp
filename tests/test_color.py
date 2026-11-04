@@ -6,6 +6,8 @@ from collections.abc import Buffer, Callable, Sequence
 from typing import Any
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from aioddp.color import (
     Color,
@@ -186,3 +188,22 @@ def test_solid_pixels(color: Color, length: int, channels: int, expected: str) -
 
 def test_expand_rgb_to_rgbw() -> None:
     assert expand_rgb_to_rgbw(b"\x01\x02\x03\x04\x05\x06") == b"\x01\x02\x03\x00\x04\x05\x06\x00"
+
+
+_ELEMENT = st.integers(-1, 256) | st.booleans() | st.floats() | st.text(max_size=2) | st.none()
+
+
+@given(st.text() | st.lists(_ELEMENT, max_size=5) | st.tuples(_ELEMENT, _ELEMENT, _ELEMENT) | st.binary(max_size=5))
+def test_parse_color_contract(value: Any) -> None:
+    """Any string or sequence parses to 3 or 4 ints 0 to 255, or raises ConfigError."""
+    try:
+        color = parse_color(value)
+    except ConfigError:
+        return
+    assert len(color) in (3, 4) and all(type(c) is int and 0 <= c <= 255 for c in color)
+
+
+@given(st.lists(st.integers(0, 255), min_size=3, max_size=4), st.sampled_from(["", "#", " #"]), st.booleans())
+def test_parse_color_hex_round_trip(channels: list[int], prefix: str, upper: bool) -> None:
+    digits = bytes(channels).hex()
+    assert parse_color(prefix + (digits.upper() if upper else digits)) == tuple(channels)

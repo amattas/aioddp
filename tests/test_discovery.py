@@ -6,6 +6,8 @@ import json
 from typing import Any
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from aioddp.const import DESTINATION_STATUS, MAX_OFFSET, DataType
 from aioddp.discovery import ControllerLayout, OutputInfo, discover, parse_config, query_layout
@@ -155,3 +157,30 @@ async def test_discover_is_the_ddp_query(udp_listener: UDPListener, answers: boo
         _assert_layout(layout, source="ddp")
     else:
         assert layout is None
+
+
+_JSON = st.recursive(
+    st.none() | st.booleans() | st.integers() | st.floats(allow_nan=False) | st.text(max_size=8),
+    lambda inner: st.lists(inner, max_size=4) | st.dictionaries(st.text(max_size=6), inner, max_size=4),
+    max_leaves=12,
+)
+# Port fields near the valid ranges so generated configs reach the slot math, not just the type checks.
+_FIELD = st.integers(-2, 2000) | st.integers(-2, 2000).map(str) | st.sampled_from([MAX_OFFSET, "9" * 5000]) | _JSON
+_PORT = st.dictionaries(st.sampled_from(["port", "p", "l", "ss", "rev", "ts"]), _FIELD, max_size=5)
+_CONFIG = st.fixed_dictionaries(
+    {"ports": st.lists(_PORT | _JSON, max_size=6)}, optional={"conv": st.integers(-1, 16) | _JSON, "proto": _JSON}
+)
+_STATUS = st.none() | _JSON | st.dictionaries(st.sampled_from(["status", "man", "mod", "ver"]), _JSON, max_size=4)
+
+
+@given(document=_JSON | _CONFIG | _CONFIG.map(lambda config: {"config": config}), status=_STATUS)
+def test_parse_config_contract(document: Any, status: Any) -> None:
+    """Any JSON document either yields a layout whose outputs fit the DDP offset range or raises DDPQueryError."""
+    try:
+        layout = parse_config(document, host="h", source="fuzz", status=status)
+    except DDPQueryError:
+        return
+    for output in layout.outputs:
+        assert output.start >= 0 and (output.start + output.length) * layout.channels <= MAX_OFFSET
+    assert layout.pixel_count == max((o.start + o.length for o in layout.active_outputs), default=0)
+    assert len(layout.segments()) == len(layout.active_outputs)

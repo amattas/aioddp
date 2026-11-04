@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import socket
 from collections.abc import Callable
 
@@ -92,6 +93,9 @@ def test_decode_flag_properties(flags: int, query: bool, reply: bool, push: bool
     assert (header.query, header.reply, header.push) == (query, reply, push)
 
 
+DEEP_NESTING = b'{"a": [[]]}'  # parsed with json.loads patched to raise RecursionError
+
+
 @pytest.mark.parametrize(
     ("payload", "expected"),
     [
@@ -105,10 +109,34 @@ def test_decode_flag_properties(flags: int, query: bool, reply: bool, push: bool
         (b'{"a": NaN}', DDPQueryError),
         (b'{"a": [Infinity]}', DDPQueryError),
         (b'{"a": -Infinity}', DDPQueryError),
+        (b'{"a": [1e400, -1e400]}', DDPQueryError),
+        (DEEP_NESTING, DDPQueryError),
     ],
-    ids=["nul-padded", "whitespace", "only-nul", "empty", "bad-json", "bad-utf8", "not-object", "nan", "inf", "-inf"],
+    ids=[
+        "nul-padded",
+        "whitespace",
+        "only-nul",
+        "empty",
+        "bad-json",
+        "bad-utf8",
+        "not-object",
+        "nan",
+        "inf",
+        "-inf",
+        "float-overflow",
+        "deep-nesting",
+    ],
 )
-def test_decode_json_document(payload: bytes, expected: dict[str, object] | None | type[Exception]) -> None:
+def test_decode_json_document(
+    payload: bytes, expected: dict[str, object] | None | type[Exception], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    if payload is DEEP_NESTING:
+        # json.loads raises RecursionError past the interpreter's limit, which depends on the platform (C stack
+        # size from Python 3.14); raise it deterministically instead of relying on a huge input.
+        def too_deep(*args: object, **kwargs: object) -> object:
+            raise RecursionError
+
+        monkeypatch.setattr(json, "loads", too_deep)
     if isinstance(expected, type):
         with pytest.raises(expected, match="destination 250"):
             decode_json_document(payload, what="destination 250")

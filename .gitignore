@@ -33,3 +33,6 @@ coverage.json
 
 # Local AI tooling state (hygiene standard)
 .claude/
+
+# Hypothesis example database
+.hypothesis/
