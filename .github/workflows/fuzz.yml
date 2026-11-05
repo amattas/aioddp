@@ -1,4 +1,4 @@
-# Fuzz: deep run of the ClusterFuzzLite targets (batch mode, 3600 s per target,
+# Fuzz: deep run of the ClusterFuzzLite targets (batch mode, 600 s per target,
 # total clamped to 19800 s) on a monthly schedule plus workflow_dispatch. A
 # scheduled run is skipped by fuzz-batch when main has no new commits since the
 # last completed scheduled run; dispatch always runs. PR fuzzing no longer runs;
