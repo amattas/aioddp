@@ -17,7 +17,7 @@ extra_css = ["stylesheets/extra.css"]
 
 nav = [
     { "Overview" = "index.md" },
-    { "Guide" = [{ "CLI" = "guide/cli.md" }, { "Effects" = "guide/effects.md" }] },
+    { "Guide" = [{ "CLI" = "guide/cli.md" }, { "Effects" = "guide/effects.md" }, { "Sender" = "guide/sender.md" }] },
     { "Reference" = [{ "Controller compatibility" = "compatibility.md" }, { "API reference" = "api/reference.md" }] },
 ]
 

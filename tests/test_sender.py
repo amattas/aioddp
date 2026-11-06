@@ -12,6 +12,7 @@ from typing import Any
 
 import pytest
 
+from aioddp.color import process_frame, solid_pixels
 from aioddp.const import DESTINATION_CONFIG, DESTINATION_STATUS, HEADER_SIZE, MAX_DATA_LEN, DataType
 from aioddp.exceptions import ConfigError, DDPQueryError, DDPSendError
 from aioddp.protocol import DDPHeader
@@ -111,6 +112,8 @@ async def test_wrong_pixel_length_raises_config_error_and_sends_nothing(
 async def test_segment_past_strip_end_raises_config_error(sender: DDPSender) -> None:
     with pytest.raises(ConfigError, match="past the strip"):
         await sender.fill(Segment("s", 8, 5), (1, 1, 1))
+    with pytest.raises(ConfigError, match="past the strip"):
+        sender.release(Segment("s", 8, 5))
 
 
 async def test_push_false_segments_then_push_latches_once(udp_listener: UDPListener, sender: DDPSender) -> None:
@@ -175,6 +178,55 @@ async def test_release_pauses_keepalive_until_next_frame(udp_listener: UDPListen
 
     assert packets[2][HEADER_SIZE:] == packets[1][HEADER_SIZE:] == bytes(30)
     assert (stats.keepalives_sent, stats.frames_sent) == (1, 2)
+
+
+_A = Segment("a", 0, 4)
+_B = Segment("b", 6, 4)
+_ALL = Segment("all", 0, 10)
+Op = tuple[str, Segment | None, tuple[int, int, int]]
+
+
+@pytest.mark.parametrize(
+    ("ops", "held"),
+    [
+        pytest.param([("fill", _A, (1, 2, 3)), ("fill", _B, (4, 5, 6)), ("release", _B, ())], [(0, 12)], id="drop-b"),
+        pytest.param([("fill", _A, (1, 2, 3)), ("off", _B, ())], [(0, 12), (18, 12)], id="off-holds-black"),
+        pytest.param([("fill", _ALL, (1, 2, 3)), ("release", _A, ())], [(12, 18)], id="all-minus-a"),
+        pytest.param([("fill", _ALL, (1, 2, 3)), ("release", Segment("mid", 3, 4), ())], [(0, 9), (21, 9)], id="split"),
+        pytest.param(
+            [("fill", _A, (1, 2, 3)), ("fill", Segment("c", 3, 3), (4, 5, 6))], [(0, 18)], id="coalesce-overlap"
+        ),
+        pytest.param([("fill", _A, (1, 2, 3)), ("fill", _B, (4, 5, 6)), ("release", None, ())], [], id="drop-all"),
+    ],
+)
+async def test_keepalive_resends_only_held_ranges_and_latches_once(
+    udp_listener: UDPListener, make_strip: MakeStrip, ops: list[Op], held: list[tuple[int, int]]
+) -> None:
+    strip = make_strip()
+    image = bytearray(strip.frame_size)
+    sends = 0
+    async with DDPSender(strip, keepalive_interval=0.5) as ddp:
+        for op, segment, color in ops:
+            if op == "release":
+                ddp.release(segment)
+                continue
+            assert segment is not None
+            await (ddp.fill(segment, color) if op == "fill" else ddp.off(segment))
+            offset = strip.byte_offset(segment)
+            image[offset : offset + strip.byte_length(segment)] = process_frame(
+                solid_pixels(color or (0, 0, 0), segment.length, strip.channels), strip
+            )
+            sends += 1
+        if held:
+            await udp_listener.wait_for(sends + len(held), timeout=1.5)
+        await asyncio.sleep(0.4 if held else 1.2)  # held: no second burst yet; none held: two silent ticks
+        stats = ddp.stats
+
+    keepalive = udp_listener.headers()[sends:]
+    assert [(h.offset, h.length) for h in keepalive] == held
+    assert [h.push for h in keepalive] == [False] * (len(held) - 1) + [True] * bool(held)
+    assert [p[HEADER_SIZE:] for p in udp_listener.packets[sends:]] == [image[o : o + n] for o, n in held]
+    assert stats.keepalives_sent == bool(held)
 
 
 @pytest.mark.parametrize("interval", [0.0, 0.49, -1.0])

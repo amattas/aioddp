@@ -1,6 +1,10 @@
 """DDPSender: the one object that owns a socket to a DDP controller.
 
 Every frame goes through ``process_frame``, so the strip's brightness cap cannot be bypassed.
+
+The sender holds the byte ranges it has sent to (``send_frame``, ``fill``, and ``off`` hold their segment; ``release``
+drops one segment or all of them). Keepalive resends only the held ranges, so pixels released to a controller's
+built-in effect are never overwritten by stale shadow bytes.
 """
 
 from __future__ import annotations
@@ -29,6 +33,36 @@ _LOGGER = logging.getLogger(__name__)
 
 _MIN_KEEPALIVE_INTERVAL = 0.5
 _BLACK: Color = (0, 0, 0)
+
+Range = tuple[int, int]  # (byte offset, byte length)
+
+
+def _hold(ranges: list[Range], offset: int, length: int) -> list[Range]:
+    """Add ``[offset, offset + length)`` to sorted, disjoint ``ranges``, coalescing overlapping or adjacent ones."""
+    start, end = offset, offset + length
+    merged: list[Range] = []
+    for r_start, r_length in ranges:
+        r_end = r_start + r_length
+        if r_end < start or r_start > end:
+            merged.append((r_start, r_length))
+        else:
+            start, end = min(start, r_start), max(end, r_end)
+    merged.append((start, end - start))
+    merged.sort()
+    return merged
+
+
+def _drop(ranges: list[Range], offset: int, length: int) -> list[Range]:
+    """Remove ``[offset, offset + length)`` from ``ranges``, splitting any range that contains it."""
+    start, end = offset, offset + length
+    kept: list[Range] = []
+    for r_start, r_length in ranges:
+        r_end = r_start + r_length
+        if r_start < start:
+            kept.append((r_start, min(r_end, start) - r_start))
+        if r_end > end:
+            kept.append((max(r_start, end), r_end - max(r_start, end)))
+    return kept
 
 
 @dataclass(slots=True)
@@ -84,7 +118,7 @@ class DDPSender:
         self._transport: asyncio.DatagramTransport | None = None
         self._protocol: _DDPProtocol | None = None
         self._keepalive_task: asyncio.Task[None] | None = None
-        self._released = False  # release(): keepalive paused until the next frame
+        self._held: list[Range] = []  # sorted, disjoint byte ranges keepalive resends; release() drops them
         self._seen_errnos: set[int | None] = set()
         self._pending: dict[int, asyncio.Future[bytes]] = {}  # destination -> reply payload
         self._reply_chunks: dict[int, dict[int, bytes]] = {}  # destination -> offset -> data; repeats replace
@@ -183,7 +217,7 @@ class DDPSender:
             destination=strip.destination_id,
         )
         self._send(transport, packets)
-        self._released = False
+        self._held = _hold(self._held, offset, len(wire))
         self._stats.frames_sent += 1
         self._stats.last_frame = bytes(self._shadow)
 
@@ -197,13 +231,18 @@ class DDPSender:
         """Blank ``segment`` (whole strip by default)."""
         await self.fill(segment, _BLACK, brightness=1.0, push=push)
 
-    def release(self) -> None:
-        """Stop keepalive resends until the next ``send_frame``, ``fill``, or ``off``, which resumes them.
+    def release(self, segment: Segment | None = None) -> None:
+        """Stop keepalive resends of ``segment`` (every held range by default) until a frame is sent to it again.
 
-        For controllers with built-in effects that take over after a timeout when DDP data stops.
-        Sends nothing and leaves the socket open; a no-op without keepalive or when closed.
+        For controllers with built-in effects that take over after a timeout when DDP data stops on their pixels.
+        Sends nothing and leaves the socket open; a no-op without keepalive or when closed. Raises ``ConfigError``
+        for a segment past the end of the strip.
         """
-        self._released = True
+        if segment is None:
+            self._held = []
+            return
+        self._strip.validate_segment(segment)
+        self._held = _drop(self._held, self._strip.byte_offset(segment), self._strip.byte_length(segment))
 
     async def push(self) -> None:
         """Send a header-only latch packet."""
@@ -281,18 +320,22 @@ class DDPSender:
             await asyncio.sleep(interval)
             transport = self._transport
             last_send = self._stats.last_send
-            if transport is None or self._released or not self._stats.frames_sent or last_send is None:
+            held = self._held
+            if transport is None or not held or last_send is None or loop.time() - last_send < interval:
                 continue
-            if loop.time() - last_send < interval:
-                continue
-            packets = build_packets(
-                bytes(self._shadow),
-                base_offset=0,
-                data_type=strip.wire_data_type,
-                sequence=self._seq,
-                push=True,
-                destination=strip.destination_id,
-            )
+            last = len(held) - 1
+            packets = [
+                packet
+                for index, (offset, length) in enumerate(held)
+                for packet in build_packets(
+                    bytes(self._shadow[offset : offset + length]),
+                    base_offset=offset,
+                    data_type=strip.wire_data_type,
+                    sequence=self._seq,
+                    push=index == last,  # one latch per burst
+                    destination=strip.destination_id,
+                )
+            ]
             self._send(transport, packets)
             self._stats.keepalives_sent += 1
 
