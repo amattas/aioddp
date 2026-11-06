@@ -50,10 +50,10 @@ Merges defaults, rejects unknown keys, coerces and range-checks by kind. `color`
 ```python
 EFFECTS: Mapping[str, type[Effect]]   # explicit dict, no import-time magic
 def get_effect(name: str) -> type[Effect]      # EffectError on unknown name, message lists valid names
-def list_effects() -> list[EffectInfo]         # name, description, static, params, color_param; used by CLI and hass-ddp effect_list
+def list_effects() -> list[EffectInfo]         # name, description, static, params, color_param, rgbw; used by CLI and hass-ddp effect_list
 ```
 
-`color_param` names the one parameter a single user-picked color drives (`BaseEffect` defaults it to `None`; effects that do not subclass it are read with `getattr`, so the `Effect` protocol does not require it). `EffectInfo.color_params(rgb)` returns the params that apply that color: `{color_param: rgb}` for a `color` param, `{color_param: [rgb]}` for a `colors` param, `{}` when there is none. hass-ddp uses it to map Home Assistant's `rgb_color` onto whatever effect is running, so the integration holds no per-effect knowledge.
+`color_param` names the one parameter a single user-picked color drives (`BaseEffect` defaults it to `None`; effects that do not subclass it are read with `getattr`, so the `Effect` protocol does not require it). `EffectInfo.color_params(rgb)` returns the params that apply that color: `{color_param: rgb}` for a `color` param, `{color_param: [rgb]}` for a `colors` param, `{}` when there is none. hass-ddp uses it to map Home Assistant's `rgb_color` onto whatever effect is running, so the integration holds no per-effect knowledge. `EffectInfo.rgbw` (from the effect's `rgbw`, read with `getattr`, default `False`) tells hass-ddp which effects accept RGBW colors: `solid` and `palette`.
 
 | Effect | `color_param` |
 |---|---|

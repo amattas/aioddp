@@ -59,6 +59,7 @@ def test_registry_names_and_lookup() -> None:
     infos = list_effects()
     assert [info[:4] for info in infos] == [(e.name, e.description, e.static, e.params) for e in EFFECTS.values()]
     assert {info.name for info in infos if info.static} == {"solid", "palette"}
+    assert {info.name for info in infos if info.rgbw} == {"solid", "palette"}
     assert set(PERIOD_AT_DEFAULTS) == set(EFFECTS)
     with pytest.raises(EffectError, match="unknown effect 'sparkle'.*breathe.*twinkle"):
         get_effect("sparkle")
