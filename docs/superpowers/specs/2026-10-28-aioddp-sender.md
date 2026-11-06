@@ -83,7 +83,7 @@ The one read path. Sends `build_query_packet` and waits up to `timeout` for repl
 
 `self._shadow = bytearray(strip.frame_size)` holds the last wire bytes sent for every position, initially all zero. Three things read it:
 
-- Keepalive resends it whole
+- Keepalive resends its held ranges (below)
 - `stats.last_frame` exposes a `bytes` copy for diagnostics and tests
 - Nothing else. It is not a source of truth for color, since it is post-pipeline; hass-ddp keeps its own state
 
@@ -94,19 +94,31 @@ When `keepalive_interval` is set, `open()` starts one task:
 ```
 loop:
     sleep(interval)
-    if now - last_send >= interval and any frame has been sent:
-        send the shadow buffer as one full-strip frame, push=True, via build_packets
+    if now - last_send >= interval and any byte range is held:
+        for each held range: build_packets(shadow[range], base_offset=range offset), push only for the last range
+        send the whole burst in one go
 ```
 
+The sender keeps a sorted list of disjoint held byte ranges, `(offset, length)`. Every `send_frame` (and so `fill` and `off`) holds its segment's range, coalescing it with any held range it overlaps or touches; black from `off()` is held data like any other. `release()` drops ranges. A keepalive burst is one `build_packets` call per held range at that range's offset, with push only on the last packet of the last range, so the controller latches once per keepalive. Bytes outside the held ranges are never resent, even though the shadow still has them, so pixels handed to a controller's built-in effect stay with it while DDP keeps other pixels alive. Nothing held means no keepalive packets.
+
 It reuses the sequence counter and counts in `stats` like any other send. It runs only when the caller has been idle, so an active effect never doubles traffic. It is off by default; the compatibility page records which controllers blank without it. The task is created with a name (`aioddp-keepalive-<host>`) and `close()` always cancels and awaits it so no task outlives the sender.
+
+### held
+
+```python
+@property
+def held(self) -> tuple[tuple[int, int], ...]
+```
+
+Read-only snapshot of the held byte ranges `(offset, length)`, sorted and disjoint, as keepalive would resend them; `()` when nothing is held. A tuple copy, so later sends and releases do not change it.
 
 ### release()
 
 ```python
-def release(self) -> None
+def release(self, segment: Segment | None = None) -> None
 ```
 
-Pauses keepalive resends until the next `send_frame` (and so `fill` or `off`), which resumes them. It is synchronous because it only sets a flag: it sends nothing, does not close the socket, and does not cancel the keepalive task, which keeps ticking and skips while released. Without keepalive, or on a closed sender, it is a harmless no-op. This exists for controllers with built-in effects: DDP data overrides the built-in effect, and the controller falls back to it some time after DDP stops (about 20 s on the controller recorded in `docs/compatibility.md`), so handing the lights back to the controller means no more DDP, keepalive included. `push()` does not resume keepalive; it latches, it is not a frame.
+Drops `segment`'s byte range from the held set (splitting a held range that contains it), or every held range when `segment` is `None`. The next `send_frame` (and so `fill` or `off`) to those pixels holds them again. A segment past the end of the strip raises `ConfigError`. It is synchronous: it sends nothing, does not close the socket, and does not cancel the keepalive task, which keeps ticking and skips while nothing is held. Without keepalive, or on a closed sender, it is a harmless no-op. This exists for controllers with built-in effects: DDP data overrides the built-in effect, and the controller falls back to it some time after DDP stops (about 20 s on the controller recorded in `docs/compatibility.md`), so handing pixels back to the controller means no more DDP to them, keepalive included. Per-segment release lets an integration hand one output to the controller while DDP keeps another alive. `push()` does not resume keepalive; it latches, it is not a frame.
 
 ## Error handling
 
@@ -149,6 +161,7 @@ All against the `udp_listener` fixture from the testing spec; no mocking of asyn
 - Two segments sent with `push=False` then `push()`: three sends, push bit only on the latch packet
 - `off` writes zeros into the shadow buffer and onto the wire
 - Keepalive at 0.5 s with a fake clock or short real sleep: no packets while sending every 0.1 s; one full-strip resend after idle
+- Keepalive after `release(segment)`: only the held ranges resent at their offsets (drop, split, overlap remainder, coalesce), black from `off` held, push once per burst, nothing after `release()`; `held` reports the same ranges
 - `close()` cancels keepalive (no pending tasks after, asserted via `asyncio.all_tasks`), second `close()` is a no-op, `send_frame` after close raises `DDPSendError`
 - Unresolvable host raises `DDPSendError` from `open()`
 - `error_received` increments `send_errors` and does not raise
