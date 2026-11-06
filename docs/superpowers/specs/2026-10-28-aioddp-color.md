@@ -17,7 +17,7 @@ Every producer (effects, `fill`, hass-ddp, the CLI) hands the sender a `bytes` o
 - Values are 0 to 255, linear intent (what the caller wants to see, before gamma)
 - Pixel 0 is the first pixel of the segment in logical order; `reverse` is the strip's problem
 
-Effects always render 3 channels. `expand_rgb_to_rgbw` inserts `W = 0` after every triplet when the strip is RGBW. White on RGBW strips is only lit by explicit RGBW colors passed to `fill` or by a future RGBW-aware effect.
+Effects render 3 channels, except the static `solid` and `palette` given an RGBW color, which render 4. `expand_rgb_to_rgbw` inserts `W = 0` after every triplet when the strip is RGBW. White on RGBW strips is only lit by explicit RGBW colors passed to `fill`, `solid`, or `palette`.
 
 ## process_frame
 

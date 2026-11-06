@@ -88,7 +88,7 @@ aioddp/
 - `Segment(name, start, length, reverse=False)`: validated against the strip (no overlap required, but out-of-range is an error)
 - `DDPSender(strip, keepalive_interval=None)`: async context manager. `send_frame(pixels, segment=None, brightness=1.0, push=True)`, `fill(segment, color, brightness)`, `off(segment)`, `push()`, `close()`. Owns the sequence counter, a shadow buffer of the last wire bytes, and the optional keepalive task. There is no raw-bytes send: `send_frame` takes canonical RGB(W) pixels and always runs the color pipeline, which is how the cap is enforced
 - `EffectRunner(sender, segment, effect, fps=30, params=None, brightness=1.0, seed=None)`: `start()`, `stop()`, `update(params=, brightness=, fps=)`, `wait()`; cancels cleanly and never leaves an orphaned task. `fade(sender, segment, start, end, duration)` is the transition helper
-- `Effect` protocol: `render(length: int, t: float, params: Mapping, seed: int) -> bytes` returning `length * 3` canonical RGB bytes, plus a declared `params` schema with defaults and a `static` flag
+- `Effect` protocol: `render(length: int, t: float, params: Mapping, seed: int) -> bytes` returning `length * 3` canonical RGB bytes (`length * 4` RGBW for `solid` and `palette` given an RGBW color), plus a declared `params` schema with defaults and a `static` flag
 - `discover(host)`: `ControllerLayout` (pixel count, one `OutputInfo` per output, channels, identity) from a DDP query, or `None`; `parse_config` builds the same layout from a document fetched by other means; `layout.segments()` gives one `Segment` per active output. `DDPSender.query(destination)` is the underlying read
 
 ### Public API sketch

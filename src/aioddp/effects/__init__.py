@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import Any, NamedTuple
 
 from aioddp.color import RGB
-from aioddp.effects.base import Effect, ParamSpec, validate_params
+from aioddp.effects.base import Effect, ParamSpec, uses_rgbw, validate_params
 from aioddp.effects.breathe import Breathe
 from aioddp.effects.chase import Chase
 from aioddp.effects.palette import Palette
@@ -58,4 +58,4 @@ def list_effects() -> list[EffectInfo]:
     ]
 
 
-__all__ = ["EFFECTS", "Effect", "EffectInfo", "ParamSpec", "get_effect", "list_effects", "validate_params"]
+__all__ = ["EFFECTS", "Effect", "EffectInfo", "ParamSpec", "get_effect", "list_effects", "uses_rgbw", "validate_params"]

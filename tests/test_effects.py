@@ -250,3 +250,38 @@ def test_rainbow_pixel_zero_at_t0(saturation: float, expected: tuple[int, int, i
 def test_palette_block_boundaries() -> None:
     frame = _render("palette", 5, 0.0, {"colors": [RED, GREEN], "block_size": 2})
     assert _pixels(frame) == [RED, RED, GREEN, GREEN, RED]
+
+
+# --- RGBW: static effects only ------------------------------------------------
+
+COLOR_PARAMS = [(n, k) for n in NAMES for k, s in EFFECTS[n].params.items() if s.kind in ("color", "colors")]
+
+
+@pytest.mark.parametrize(("name", "key"), COLOR_PARAMS, ids=[f"{n}-{k}" for n, k in COLOR_PARAMS])
+def test_rgbw_colors_accepted_only_by_rgbw_effects(name: str, key: str) -> None:
+    effect = EFFECTS[name]
+    single = effect.params[key].kind == "color"
+    value = "ff000080" if single else "ff000080, 00ff00"
+    if name in ("solid", "palette"):
+        expected = (255, 0, 0, 128) if single else [(255, 0, 0, 128), GREEN]
+        assert validate_params(effect, {key: value})[key] == expected
+    else:
+        with pytest.raises(EffectError, match=f"'{key}'.*RGBW"):
+            validate_params(effect, {key: value})
+
+
+@pytest.mark.parametrize(
+    ("name", "params", "expected"),
+    [
+        ("solid", {"color": (1, 2, 3, 4)}, [(1, 2, 3, 4)] * 5),
+        # RGB colors are padded with W=0 once any color is RGBW; blocks repeat across the 4-byte pixels.
+        (
+            "palette",
+            {"colors": [RED, (0, 0, 0, 255)], "block_size": 2},
+            [(255, 0, 0, 0), (255, 0, 0, 0), (0, 0, 0, 255), (0, 0, 0, 255), (255, 0, 0, 0)],
+        ),
+    ],
+)
+def test_rgbw_colors_render_four_channels(name: str, params: dict[str, Any], expected: list[tuple[int, ...]]) -> None:
+    frame = _render(name, 5, 0.0, params)
+    assert [tuple(frame[i : i + 4]) for i in range(0, len(frame), 4)] == expected

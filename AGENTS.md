@@ -69,7 +69,7 @@ aioddp/
 - `Segment(name, start, length, reverse=False)`: byte-range view of a strip
 - `DDPSender(strip, keepalive_interval=None)`: `send_frame`, `fill`, `off`, `push`, `release`, `close`. No raw-bytes send path. `release()` pauses keepalive until the next frame so a controller can fall back to its built-in effect
 - `EffectRunner(sender, segment, effect, fps, params, brightness, seed)`: `start`, `stop`, `update`, `wait`
-- `Effect`: pure `render(length, t, params, seed) -> bytes` of canonical RGB
+- `Effect`: pure `render(length, t, params, seed) -> bytes` of canonical RGB; static `solid` and `palette` (`rgbw = True`) render RGBW when given an RGBW color
 - `discover(host) -> ControllerLayout | None`: pixel count and one `OutputInfo` per output from a DDP query (destinations 250/251); `layout.segments()` is one `Segment` per active output. `DDPSender.query(destination)` is the raw read. `parse_config(document, host=, source=, status=)` builds the same layout from a JSON document fetched by other means (for example over a controller's HTTP API by `pyminleon`)
 
 Exceptions: `DDPError` > `ConfigError`, `DDPSendError`, `EffectError`, `DDPQueryError`.

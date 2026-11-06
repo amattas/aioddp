@@ -194,8 +194,9 @@ async def test_effect_runs_then_blanks_unless_keep_or_static(
         (["effect", "chase", "--param", "speed"], "key=value"),
         (["effect", "sparkle"], "sparkle"),
         (["effect", "chase", "--fps", "99"], "fps"),
+        (["effect", "solid", "--param", "color=ff000080"], "4-channel"),
     ],
-    ids=["out-of-range", "unknown-param", "no-equals", "unknown-effect", "bad-fps"],
+    ids=["out-of-range", "unknown-param", "no-equals", "unknown-effect", "bad-fps", "rgbw-on-rgb"],
 )
 async def test_effect_bad_input_exits_1_before_sending(run: CLI, args: list[str], message: str) -> None:
     result = await run(*run.target, *args)
