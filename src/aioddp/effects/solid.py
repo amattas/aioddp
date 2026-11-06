@@ -1,4 +1,4 @@
-"""solid: one color on every pixel (static)."""
+"""solid: one color on every pixel (static; an RGBW color renders 4-channel pixels)."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ class Solid(BaseEffect):
     description: ClassVar[str] = "One color on every pixel"
     color_param: ClassVar[str | None] = "color"
     static: ClassVar[bool] = True
+    rgbw: ClassVar[bool] = True
     params: ClassVar[Mapping[str, ParamSpec]] = {
         "color": ParamSpec("color", (255, 255, 255), "Fill color"),
     }

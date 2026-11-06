@@ -44,7 +44,7 @@ class EffectRunner:
 ### Construction
 
 - `effect` as a string is resolved through `get_effect`; unknown raises `EffectError` immediately, not at `start()`
-- `params` go through `validate_params` at construction, so a bad param fails before any task exists
+- `params` go through `validate_params` at construction, so a bad param fails before any task exists. RGBW colors (accepted by `solid` and `palette`) are also checked against `sender.strip.channels` there and in `update()`: on a 3-channel strip they raise `EffectError` instead of failing in the loop
 - `fps` is `1 <= fps <= MAX_FPS`, `brightness` is 0.0 to 1.0, else `ConfigError`
 - `seed` of `None` becomes 0
 - The sender must be open at `start()`, not at construction; hass-ddp builds runners before the entry is fully up

@@ -12,8 +12,8 @@ from types import TracebackType
 from typing import Any
 
 from aioddp.const import DEFAULT_FPS, MAX_FPS
-from aioddp.effects import Effect, get_effect, validate_params
-from aioddp.exceptions import ConfigError, DDPSendError
+from aioddp.effects import Effect, get_effect, uses_rgbw, validate_params
+from aioddp.exceptions import ConfigError, DDPSendError, EffectError
 from aioddp.sender import DDPSender
 from aioddp.strip import Segment
 
@@ -58,10 +58,10 @@ class EffectRunner:
         seed: int | None = None,
     ) -> None:
         self._effect_cls = get_effect(effect) if isinstance(effect, str) else effect
-        self._params = validate_params(self._effect_cls, params)
+        self._sender = sender
+        self._params = self._validate(params)
         self._fps = _check_fps(fps)
         self._brightness = _check_brightness(brightness)
-        self._sender = sender
         self._segment = segment
         self._seed = 0 if seed is None else seed
         self._effect = self._effect_cls()
@@ -124,7 +124,7 @@ class EffectRunner:
 
         All values are validated before any is applied, so a bad value leaves the runner unchanged.
         """
-        new_params = validate_params(self._effect_cls, params) if params is not None else None
+        new_params = self._validate(params) if params is not None else None
         new_brightness = _check_brightness(brightness) if brightness is not None else None
         new_fps = _check_fps(fps) if fps is not None else None
         if new_params is not None:
@@ -154,6 +154,16 @@ class EffectRunner:
         tb: TracebackType | None,
     ) -> None:
         await self.stop()
+
+    def _validate(self, params: Mapping[str, Any] | None) -> dict[str, Any]:
+        """``validate_params``, plus: RGBW colors render 4-channel pixels, which only a 4-channel strip takes."""
+        validated = validate_params(self._effect_cls, params)
+        channels = self._sender.strip.channels
+        if channels != 4 and uses_rgbw(self._effect_cls, validated):
+            raise EffectError(
+                f"{self._effect_cls.name}: RGBW colors need a 4-channel strip; this strip has {channels} channels"
+            )
+        return validated
 
     def _on_done(self, task: asyncio.Task[None]) -> None:
         if self._task is task:

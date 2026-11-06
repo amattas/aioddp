@@ -7,7 +7,7 @@ Package: `effects/` (`__init__.py`, `base.py`, `solid.py`, `breathe.py`, `chase.
 
 ## Scope
 
-Six deterministic effects, a parameter schema, and a registry. Effects know nothing about strips, sockets, gamma, or the cap: they produce canonical RGB bytes for a segment length at a time `t`. The runner (next spec) owns timing.
+Six deterministic effects, a parameter schema, and a registry. Effects know nothing about strips, sockets, gamma, or the cap: they produce canonical RGB (RGBW for `solid` and `palette` given an RGBW color) bytes for a segment length at a time `t`. The runner (next spec) owns timing.
 
 ## Effect contract (`base.py`)
 
@@ -24,6 +24,7 @@ class Effect(Protocol):
     description: ClassVar[str]
     params: ClassVar[Mapping[str, ParamSpec]]
     static: ClassVar[bool]            # True: render once, no loop
+    # optional, read with getattr (BaseEffect: False): rgbw: ClassVar[bool], True accepts RGBW colors
 
     def render(self, length: int, t: float, params: Mapping[str, Any], seed: int) -> bytes
 ```
@@ -31,7 +32,7 @@ class Effect(Protocol):
 Rules every effect follows, enforced by the shared parametrized test:
 
 - **Pure**: `render` output depends only on `(length, t, params, seed)`. No instance state that changes between calls. Internal caches keyed on those inputs are fine and expected (per-pixel phases, hue tables)
-- **Output**: exactly `length * 3` bytes, canonical RGB. Effects never render W; the sender expands for RGBW strips
+- **Output**: exactly `length * 3` bytes, canonical RGB; the sender expands for RGBW strips. Exception: an effect with `rgbw = True` (only the static `solid` and `palette`) renders exactly `length * 4` canonical RGBW bytes when any of its validated colors has four components, padding RGB colors with `W = 0`. `uses_rgbw(effect, params)` says which. Animated effects never render W
 - **Time**: `t` is seconds since the runner started, non-negative, unbounded. Effects use modular arithmetic so `t = 1e6` renders the same as `t % period`
 - **Budget**: 500 pixels in under 2 ms median on the CI runner (see testing spec). Per-pixel Python loops are allowed; per-pixel function calls and tuple allocation are what blow the budget, so effects build a `bytearray` and write channels directly
 - **Params**: `render` receives already-validated, default-merged params. It never looks up defaults itself
@@ -42,17 +43,17 @@ Rules every effect follows, enforced by the shared parametrized test:
 def validate_params(effect: type[Effect], params: Mapping[str, Any] | None) -> dict[str, Any]
 ```
 
-Merges defaults, rejects unknown keys, coerces and range-checks by kind. `color` accepts anything `parse_color` does and normalizes to an RGB tuple (RGBW input is rejected with `EffectError` since effects render RGB). `colors` is a non-empty list of the same. `int` and `float` are range-checked against `min`/`max` when set; `bool` accepts `bool` only. Failures raise `EffectError` naming the param. The CLI's `--param key=value` strings go through this with string coercion for numbers (`"1.5"`, `"3"`, `"true"`) and comma-split hex lists for `colors`.
+Merges defaults, rejects unknown keys, coerces and range-checks by kind. `color` accepts anything `parse_color` does and normalizes to an RGB tuple. RGBW input (`"ff000080"`, a 4-tuple) is kept as a 4-tuple for effects with `rgbw = True` and rejected with `EffectError` for the rest. `colors` is a non-empty list of the same. `int` and `float` are range-checked against `min`/`max` when set; `bool` accepts `bool` only. Failures raise `EffectError` naming the param. The CLI's `--param key=value` strings go through this with string coercion for numbers (`"1.5"`, `"3"`, `"true"`) and comma-split hex lists for `colors`.
 
 ## Registry (`effects/__init__.py`)
 
 ```python
 EFFECTS: Mapping[str, type[Effect]]   # explicit dict, no import-time magic
 def get_effect(name: str) -> type[Effect]      # EffectError on unknown name, message lists valid names
-def list_effects() -> list[EffectInfo]         # name, description, static, params, color_param; used by CLI and hass-ddp effect_list
+def list_effects() -> list[EffectInfo]         # name, description, static, params, color_param, rgbw; used by CLI and hass-ddp effect_list
 ```
 
-`color_param` names the one parameter a single user-picked color drives (`BaseEffect` defaults it to `None`; effects that do not subclass it are read with `getattr`, so the `Effect` protocol does not require it). `EffectInfo.color_params(rgb)` returns the params that apply that color: `{color_param: rgb}` for a `color` param, `{color_param: [rgb]}` for a `colors` param, `{}` when there is none. hass-ddp uses it to map Home Assistant's `rgb_color` onto whatever effect is running, so the integration holds no per-effect knowledge.
+`color_param` names the one parameter a single user-picked color drives (`BaseEffect` defaults it to `None`; effects that do not subclass it are read with `getattr`, so the `Effect` protocol does not require it). `EffectInfo.color_params(rgb)` returns the params that apply that color: `{color_param: rgb}` for a `color` param, `{color_param: [rgb]}` for a `colors` param, `{}` when there is none. hass-ddp uses it to map Home Assistant's `rgb_color` onto whatever effect is running, so the integration holds no per-effect knowledge. `EffectInfo.rgbw` (from the effect's `rgbw`, read with `getattr`, default `False`) tells hass-ddp which effects accept RGBW colors: `solid` and `palette`.
 
 | Effect | `color_param` |
 |---|---|
@@ -136,6 +137,7 @@ Pixel `i` is `colors[(i // block_size) mod len(colors)]`. Holiday and team-color
 One parametrized test over `EFFECTS.values()` for each contract rule:
 
 - Output length is `length * 3` for lengths 1, 2, 300
+- RGBW colors validate only for `rgbw` effects (every `color`/`colors` param of every effect), and `solid`/`palette` render `length * 4` bytes with RGB padded to `W = 0`
 - Same inputs twice give identical bytes; different seeds differ only for `twinkle`
 - `t` and `t + 10_000 * period_equivalent` match within one frame's rounding (periodicity)
 - Golden bytes for default params at three `t` values

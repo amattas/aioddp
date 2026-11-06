@@ -10,6 +10,8 @@ from typing import Any, ClassVar
 
 import pytest
 
+from aioddp.color import process_frame
+from aioddp.const import DataType
 from aioddp.effects import Effect, ParamSpec
 from aioddp.effects.base import BaseEffect
 from aioddp.exceptions import ConfigError, DDPSendError, EffectError
@@ -231,3 +233,28 @@ async def test_fade_interpolates_to_exact_end_at_duration(
     assert payloads[-1] == end
     if frames == 10:
         assert payloads[0] == bytes([20, 10, 5]) * 10
+
+
+async def test_rgbw_static_effect_sends_four_channel_frame(udp_listener: UDPListener, make_strip: MakeStrip) -> None:
+    strip = make_strip(pixel_count=4, data_type=DataType.RGBW, color_order="WRGB")
+    async with (
+        DDPSender(strip) as ddp,
+        EffectRunner(
+            ddp, strip.full_segment(), "palette", params={"colors": "ff000080, 00ff00"}, brightness=0.5
+        ) as runner,
+    ):
+        await runner.wait()
+        await udp_listener.wait_for(1)
+        await asyncio.sleep(0.02)  # nothing more follows a static frame
+    canonical = bytes([255, 0, 0, 128, 0, 255, 0, 0]) * 2
+    assert udp_listener.payloads() == [process_frame(canonical, strip, brightness=0.5)]
+
+
+@pytest.mark.parametrize("stage", ["construct", "update"])
+def test_rgbw_colors_on_three_channel_strip_fail_up_front(make_strip: MakeStrip, stage: str) -> None:
+    ddp, params = DDPSender(make_strip()), {"color": "ff000080"}
+    with pytest.raises(EffectError, match="4-channel"):
+        if stage == "construct":
+            EffectRunner(ddp, Segment("all", 0, 10), "solid", params=params)
+        else:
+            EffectRunner(ddp, Segment("all", 0, 10), "solid").update(params=params)

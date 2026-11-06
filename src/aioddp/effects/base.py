@@ -3,6 +3,11 @@
 An effect turns ``(length, t, params, seed)`` into exactly ``length * 3`` canonical RGB bytes. It knows nothing
 about strips, gamma, or the brightness cap. ``render`` receives params that already went through
 ``validate_params`` (defaults merged, values coerced and range-checked).
+
+An effect with ``rgbw = True`` (the static ``solid`` and ``palette``) also accepts RGBW colors. When any of its
+validated colors has four components it renders exactly ``length * 4`` canonical RGBW bytes, padding RGB colors
+with W=0; otherwise ``length * 3`` as above. Four-channel output needs a 4-channel strip (``uses_rgbw`` tells).
+Every other effect rejects RGBW colors and always renders RGB.
 """
 
 from __future__ import annotations
@@ -11,7 +16,7 @@ import math
 from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar, Literal, NamedTuple, Protocol, cast
 
-from aioddp.color import RGB, parse_color
+from aioddp.color import Color, parse_color
 from aioddp.exceptions import ConfigError, EffectError
 
 ParamKind = Literal["float", "int", "bool", "color", "colors"]
@@ -31,7 +36,11 @@ class ParamSpec(NamedTuple):
 
 
 class Effect(Protocol):
-    """What the runner, CLI, and hass-ddp rely on. See the module docstring for the render contract."""
+    """What the runner, CLI, and hass-ddp rely on. See the module docstring for the render contract.
+
+    An effect may also set ``rgbw: ClassVar[bool]`` (read with ``getattr``, default ``False``) to accept RGBW
+    colors and render ``length * 4`` bytes when one is given.
+    """
 
     name: ClassVar[str]
     description: ClassVar[str]
@@ -50,6 +59,7 @@ class BaseEffect:
     """
 
     static: ClassVar[bool] = False
+    rgbw: ClassVar[bool] = False  # True: color params accept RGBW and render 4-channel pixels (module docstring)
     color_param: ClassVar[str | None] = None  # the param one user-picked color drives; see EffectInfo.color_params
 
     @classmethod
@@ -108,19 +118,19 @@ def _coerce_bool(effect: type[Effect], key: str, value: object) -> bool:
     raise _fail(effect, key, f"expected a bool, got {value!r}")
 
 
-def _coerce_color(effect: type[Effect], key: str, value: object) -> RGB:
+def _coerce_color(effect: type[Effect], key: str, value: object) -> Color:
     if not isinstance(value, Sequence):
         raise _fail(effect, key, f"expected a color, got {value!r}")
     try:
         color = parse_color(cast("str | Sequence[int]", value))
     except ConfigError as err:
         raise _fail(effect, key, str(err)) from None
-    if len(color) != 3:
+    if len(color) != 3 and not getattr(effect, "rgbw", False):
         raise _fail(effect, key, f"effects render RGB; RGBW color {value!r} is not allowed")
-    return (color[0], color[1], color[2])
+    return color
 
 
-def _coerce_colors(effect: type[Effect], key: str, value: object) -> list[RGB]:
+def _coerce_colors(effect: type[Effect], key: str, value: object) -> list[Color]:
     if isinstance(value, str):
         items: Sequence[object] = [part.strip() for part in value.split(",")]
     elif isinstance(value, Sequence):
@@ -147,7 +157,8 @@ def validate_params(effect: type[Effect], params: Mapping[str, Any] | None) -> d
 
     Strings are accepted for every kind so CLI ``--param key=value`` input works: numbers (``"1.5"``, ``"3"``),
     bools (``"true"``/``"false"``), hex or named colors, and comma-separated color lists. Colors normalize to
-    RGB tuples; RGBW is rejected. Raises ``EffectError`` naming the param on any failure.
+    RGB tuples; RGBW (``"ff000080"``, 4-int sequences) is kept as 4-tuples for ``rgbw`` effects and rejected for
+    the rest. Raises ``EffectError`` naming the param on any failure.
     """
     given = dict(params or {})
     unknown = sorted(set(given) - set(effect.params))
@@ -158,3 +169,13 @@ def validate_params(effect: type[Effect], params: Mapping[str, Any] | None) -> d
     if check is not None:
         check(merged)
     return merged
+
+
+def uses_rgbw(effect: type[Effect], params: Mapping[str, Any]) -> bool:
+    """Whether validated ``params`` hold an RGBW color, so ``effect`` renders ``length * 4`` bytes."""
+    for key, spec in effect.params.items():
+        if spec.kind == "color" and len(params[key]) == 4:
+            return True
+        if spec.kind == "colors" and any(len(color) == 4 for color in params[key]):
+            return True
+    return False

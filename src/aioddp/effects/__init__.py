@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import Any, NamedTuple
 
 from aioddp.color import RGB
-from aioddp.effects.base import Effect, ParamSpec, validate_params
+from aioddp.effects.base import Effect, ParamSpec, uses_rgbw, validate_params
 from aioddp.effects.breathe import Breathe
 from aioddp.effects.chase import Chase
 from aioddp.effects.palette import Palette
@@ -33,6 +33,7 @@ class EffectInfo(NamedTuple):
     static: bool
     params: Mapping[str, ParamSpec]
     color_param: str | None = None  # the param a single color (e.g. Home Assistant's rgb_color) drives, if any
+    rgbw: bool = False  # color params accept RGBW colors, rendered as 4-channel pixels
 
     def color_params(self, rgb: RGB) -> dict[str, Any]:
         """Params that put one ``rgb`` color on this effect; empty when the effect has no color to drive."""
@@ -54,8 +55,11 @@ def get_effect(name: str) -> type[Effect]:
 def list_effects() -> list[EffectInfo]:
     """Every registered effect, in registry order."""
     return [
-        EffectInfo(e.name, e.description, e.static, e.params, getattr(e, "color_param", None)) for e in EFFECTS.values()
+        EffectInfo(
+            e.name, e.description, e.static, e.params, getattr(e, "color_param", None), getattr(e, "rgbw", False)
+        )
+        for e in EFFECTS.values()
     ]
 
 
-__all__ = ["EFFECTS", "Effect", "EffectInfo", "ParamSpec", "get_effect", "list_effects", "validate_params"]
+__all__ = ["EFFECTS", "Effect", "EffectInfo", "ParamSpec", "get_effect", "list_effects", "uses_rgbw", "validate_params"]
