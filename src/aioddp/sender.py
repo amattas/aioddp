@@ -96,7 +96,10 @@ class _DDPProtocol(asyncio.DatagramProtocol):
 
 
 class DDPSender:
-    """Async DDP sender for one strip. Bound to the loop it was opened on; not thread-safe."""
+    """Async DDP sender for one strip. Bound to the loop it was opened on; not thread-safe.
+
+    Keepalive resends the byte ranges frames have held: ``held`` reads them, ``release()`` drops them.
+    """
 
     def __init__(
         self,
@@ -243,6 +246,14 @@ class DDPSender:
             return
         self._strip.validate_segment(segment)
         self._held = _drop(self._held, self._strip.byte_offset(segment), self._strip.byte_length(segment))
+
+    @property
+    def held(self) -> tuple[tuple[int, int], ...]:
+        """The byte ranges ``(offset, length)`` keepalive resends, sorted and disjoint; ``()`` when none are held.
+
+        Frames hold their segment's range; ``release()`` drops ranges. A snapshot: later sends do not change it.
+        """
+        return tuple(self._held)
 
     async def push(self) -> None:
         """Send a header-only latch packet."""

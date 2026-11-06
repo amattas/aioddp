@@ -167,7 +167,9 @@ async def test_keepalive_resends_shadow_only_after_idle(udp_listener: UDPListene
 async def test_release_pauses_keepalive_until_next_frame(udp_listener: UDPListener, make_strip: MakeStrip) -> None:
     async with DDPSender(make_strip(), keepalive_interval=0.5) as ddp:
         await ddp.fill(None, (1, 2, 3))
+        assert ddp.held == ((0, 30),)
         ddp.release()  # sends nothing, keeps the socket
+        assert not ddp.held
         await asyncio.sleep(1.2)  # two keepalive ticks while released: silent
         assert len(udp_listener.packets) == 1
         assert (ddp.is_open, ddp.stats.keepalives_sent) == (True, 0)
@@ -217,6 +219,7 @@ async def test_keepalive_resends_only_held_ranges_and_latches_once(
                 solid_pixels(color or (0, 0, 0), segment.length, strip.channels), strip
             )
             sends += 1
+        assert ddp.held == tuple(held)
         if held:
             await udp_listener.wait_for(sends + len(held), timeout=1.5)
         await asyncio.sleep(0.4 if held else 1.2)  # held: no second burst yet; none held: two silent ticks

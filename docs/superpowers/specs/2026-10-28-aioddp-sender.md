@@ -103,6 +103,15 @@ The sender keeps a sorted list of disjoint held byte ranges, `(offset, length)`.
 
 It reuses the sequence counter and counts in `stats` like any other send. It runs only when the caller has been idle, so an active effect never doubles traffic. It is off by default; the compatibility page records which controllers blank without it. The task is created with a name (`aioddp-keepalive-<host>`) and `close()` always cancels and awaits it so no task outlives the sender.
 
+### held
+
+```python
+@property
+def held(self) -> tuple[tuple[int, int], ...]
+```
+
+Read-only snapshot of the held byte ranges `(offset, length)`, sorted and disjoint, as keepalive would resend them; `()` when nothing is held. A tuple copy, so later sends and releases do not change it.
+
 ### release()
 
 ```python
@@ -152,7 +161,7 @@ All against the `udp_listener` fixture from the testing spec; no mocking of asyn
 - Two segments sent with `push=False` then `push()`: three sends, push bit only on the latch packet
 - `off` writes zeros into the shadow buffer and onto the wire
 - Keepalive at 0.5 s with a fake clock or short real sleep: no packets while sending every 0.1 s; one full-strip resend after idle
-- Keepalive after `release(segment)`: only the held ranges resent at their offsets (drop, split, overlap remainder, coalesce), black from `off` held, push once per burst, nothing after `release()`
+- Keepalive after `release(segment)`: only the held ranges resent at their offsets (drop, split, overlap remainder, coalesce), black from `off` held, push once per burst, nothing after `release()`; `held` reports the same ranges
 - `close()` cancels keepalive (no pending tasks after, asserted via `asyncio.all_tasks`), second `close()` is a no-op, `send_frame` after close raises `DDPSendError`
 - Unresolvable host raises `DDPSendError` from `open()`
 - `error_received` increments `send_errors` and does not raise
