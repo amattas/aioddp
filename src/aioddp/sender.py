@@ -7,7 +7,8 @@ drops one segment or all of them). Keepalive resends only the held ranges, so pi
 built-in effect are never overwritten by stale shadow bytes.
 
 With ``repeat_frames`` above 1, every frame is followed by a short burst of resends of the held ranges, for controllers
-that drop a lone frame after a gap in the stream.
+that drop a lone frame after a gap in the stream. ``release(drain=True)`` lets a pending burst finish before the ranges
+stop being resent, so a last frame (black, say) still goes out as a burst.
 """
 
 from __future__ import annotations
@@ -140,6 +141,8 @@ class DDPSender:
         self._repeats_left = 0  # resends still due after the latest frame
         self._repeat_due = 0.0  # loop.time() of the next one
         self._held: list[Range] = []  # sorted, disjoint byte ranges keepalive and repeats resend; release() drops them
+        self._draining: list[Range] = []  # released with drain=True: only the pending repeat burst still resends them
+        self._closing = False  # set by close() while it reaps the tasks: no new repeat task may start
         self._seen_errnos: set[int | None] = set()
         self._pending: dict[int, asyncio.Future[bytes]] = {}  # destination -> reply payload
         self._reply_chunks: dict[int, dict[int, bytes]] = {}  # destination -> offset -> data; repeats replace
@@ -184,6 +187,7 @@ class DDPSender:
     async def close(self) -> None:
         """Stop keepalive and pending repeats and close the socket. Idempotent; never blanks the lights."""
         async with self._lifecycle:
+            self._closing = True
             try:
                 await self._stop_tasks()
             finally:
@@ -191,6 +195,7 @@ class DDPSender:
                 if transport is not None:
                     transport.close()
                 self._fail_pending()
+                self._closing = False
 
     async def __aenter__(self) -> DDPSender:
         await self.open()
@@ -243,6 +248,7 @@ class DDPSender:
         )
         self._send(transport, packets)
         self._held = _hold(self._held, offset, len(wire))
+        self._draining = _drop(self._draining, offset, len(wire))
         self._stats.frames_sent += 1
         self._stats.last_frame = bytes(self._shadow)
         if self._repeat_frames > 1:
@@ -258,18 +264,32 @@ class DDPSender:
         """Blank ``segment`` (whole strip by default)."""
         await self.fill(segment, _BLACK, brightness=1.0, push=push)
 
-    def release(self, segment: Segment | None = None) -> None:
+    def release(self, segment: Segment | None = None, *, drain: bool = False) -> None:
         """Stop keepalive and repeat resends of ``segment`` (every held range by default) until a frame holds it again.
 
         For controllers with built-in effects that take over after a timeout when DDP data stops on their pixels.
         Sends nothing and leaves the socket open; a no-op without keepalive or repeats, or when closed. Raises
         ``ConfigError`` for a segment past the end of the strip.
+
+        With ``drain``, a pending repeat burst still resends the released ranges before they stop (at once when none
+        is pending); keepalive and ``held`` drop them at once either way. A frame to them in the meantime holds them
+        again. Without ``drain``, nothing released is sent again, a scheduled repeat included.
         """
         if segment is None:
-            self._held = []
-            return
-        self._strip.validate_segment(segment)
-        self._held = _drop(self._held, self._strip.byte_offset(segment), self._strip.byte_length(segment))
+            offset, length = 0, self._strip.frame_size
+        else:
+            self._strip.validate_segment(segment)
+            offset, length = self._strip.byte_offset(segment), self._strip.byte_length(segment)
+        end = offset + length
+        released = [
+            (max(o, offset), min(o + n, end) - max(o, offset)) for o, n in self._held if o < end and offset < o + n
+        ]
+        self._held = _drop(self._held, offset, length)
+        if drain and self._repeats_left > 0:
+            for r_offset, r_length in released:
+                self._draining = _hold(self._draining, r_offset, r_length)
+        else:
+            self._draining = _drop(self._draining, offset, length)
 
     @property
     def held(self) -> tuple[tuple[int, int], ...]:
@@ -348,10 +368,10 @@ class DDPSender:
             stats.bytes_sent += len(packet)
         stats.last_send = asyncio.get_running_loop().time()
 
-    def _resend_held(self, transport: asyncio.DatagramTransport) -> None:
-        """Resend the shadow bytes of every held range at its offset, latching once on the last packet."""
+    def _resend(self, transport: asyncio.DatagramTransport, ranges: list[Range]) -> None:
+        """Resend the shadow bytes of every range at its offset, latching once on the last packet."""
         strip = self._strip
-        held = self._held
+        held = ranges
         last = len(held) - 1
         packets = [
             packet
@@ -375,11 +395,13 @@ class DDPSender:
             last_send = self._stats.last_send
             if transport is None or not self._held or last_send is None or loop.time() - last_send < interval:
                 continue
-            self._resend_held(transport)
+            self._resend(transport, self._held)  # never the draining ranges
             self._stats.keepalives_sent += 1
 
     def _schedule_repeats(self) -> None:
         """(Re)start the repeat countdown; one task serves every frame, so a fast stream adds no tasks or packets."""
+        if self._closing:
+            return
         loop = asyncio.get_running_loop()
         self._repeats_left = self._repeat_frames - 1
         self._repeat_due = loop.time() + self._repeat_interval
@@ -388,22 +410,31 @@ class DDPSender:
 
     async def _repeat(self) -> None:
         loop = asyncio.get_running_loop()
-        while self._repeats_left > 0:
-            delay = self._repeat_due - loop.time()
-            if delay > 0:
-                await asyncio.sleep(delay)
-                continue  # a newer frame may have moved the deadline
-            transport = self._transport
-            if transport is None:
-                return
-            self._repeats_left -= 1
-            self._repeat_due = loop.time() + self._repeat_interval
-            if self._held:  # read now: released ranges are not resent
-                self._resend_held(transport)
-                self._stats.repeats_sent += 1
+        try:
+            while self._repeats_left > 0:
+                delay = self._repeat_due - loop.time()
+                if delay > 0:
+                    await asyncio.sleep(delay)
+                    continue  # a newer frame may have moved the deadline
+                transport = self._transport
+                if transport is None:
+                    return
+                self._repeats_left -= 1
+                self._repeat_due = loop.time() + self._repeat_interval
+                ranges = self._held  # read now: released ranges are not resent, draining ones are
+                for offset, length in self._draining:
+                    ranges = _hold(ranges, offset, length)
+                if ranges:
+                    self._resend(transport, ranges)
+                    self._stats.repeats_sent += 1
+        finally:
+            if self._repeat_task is asyncio.current_task():  # else close() reaped it and a newer task may own the state
+                self._repeats_left = 0
+                self._draining = []  # the burst is over (or cancelled): drained ranges stop here
 
     async def _stop_tasks(self) -> None:
         self._repeats_left = 0
+        self._draining = []
         repeat, keepalive = self._repeat_task, self._keepalive_task
         self._repeat_task = self._keepalive_task = None
         try:
@@ -469,6 +500,7 @@ class DDPSender:
         self._transport, self._protocol = None, None
         self._fail_pending()
         self._repeats_left = 0
+        self._draining = []
         for task in (self._keepalive_task, self._repeat_task):
             if task is not None:
                 task.cancel()  # close() or the next open() awaits it

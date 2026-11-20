@@ -303,28 +303,56 @@ async def test_newer_frame_restarts_repeats_of_every_held_range(
     assert (stats.frames_sent, stats.repeats_sent) == (2, 2)
 
 
-@pytest.mark.parametrize(("released", "repeated"), [(None, []), (_A, [(18, 12)])], ids=["all", "one-segment"])
-async def test_release_stops_repeats_of_released_ranges(
-    udp_listener: UDPListener, make_strip: MakeStrip, released: Segment | None, repeated: list[tuple[int, int]]
+@pytest.mark.parametrize(
+    ("repeat_frames", "released", "drain", "refill", "repeated", "held"),
+    [
+        pytest.param(3, None, False, False, [], [], id="all"),
+        pytest.param(3, _A, False, False, [(18, 12)], [(18, 12)], id="one-segment"),
+        pytest.param(3, None, True, False, [(0, 12), (18, 12)], [], id="drain-all"),
+        pytest.param(3, _A, True, False, [(0, 12), (18, 12)], [(18, 12)], id="drain-one-segment"),
+        pytest.param(3, None, True, True, [(0, 12), (18, 12)], [(0, 12)], id="drain-then-frame-keeps-it"),
+        pytest.param(1, None, True, False, [], [], id="drain-without-burst"),
+    ],
+)
+async def test_release_stops_repeats_or_drains_after_the_burst(
+    udp_listener: UDPListener,
+    make_strip: MakeStrip,
+    repeat_frames: int,
+    released: Segment | None,
+    drain: bool,
+    refill: bool,
+    repeated: list[tuple[int, int]],
+    held: list[tuple[int, int]],
 ) -> None:
-    async with DDPSender(make_strip(), repeat_frames=3, repeat_interval=0.1) as ddp:
+    async with DDPSender(make_strip(), keepalive_interval=0.5, repeat_frames=repeat_frames) as ddp:
         await ddp.fill(_A, (1, 2, 3))
         await ddp.fill(_B, (4, 5, 6))
-        ddp.release(released)
+        ddp.release(released, drain=drain)
+        if refill:
+            await ddp.fill(_A, (7, 8, 9))
+        assert ddp.held == tuple(held)  # drained ranges are no longer held, though the burst still resends them
         await asyncio.sleep(0.35)
+        bursts = udp_listener.headers()[2 + refill :]
         stats = ddp.stats
+        await asyncio.sleep(0.85)  # one keepalive tick past idle: it resends only what stays held
+        keepalive = udp_listener.headers()[2 + refill + len(bursts) :]
 
-    assert [(h.offset, h.length) for h in udp_listener.headers()[2:]] == repeated * 2
-    assert stats.repeats_sent == (2 if repeated else 0)
+    burst = [(h.offset, h.length) for h in bursts]
+    assert burst == repeated * (repeat_frames - 1)
+    assert [h.push for h in bursts] == ([False] * (len(repeated) - 1) + [True]) * (repeat_frames - 1) * bool(repeated)
+    assert stats.repeats_sent == (repeat_frames - 1 if repeated else 0)
+    assert [(h.offset, h.length) for h in keepalive] == held
+    assert ddp.held == tuple(held)
 
 
-@pytest.mark.parametrize("ending", ["close", "connection_lost"])
-async def test_close_or_lost_connection_cancels_pending_repeats(
+@pytest.mark.parametrize("ending", ["close", "connection_lost", "close-racing-fill"])
+async def test_close_or_lost_connection_cancels_pending_repeats_and_drains(
     udp_listener: UDPListener, make_strip: MakeStrip, ending: str
 ) -> None:
     ddp = DDPSender(make_strip(), repeat_frames=3, repeat_interval=0.1)
     await ddp.open()
     await ddp.fill(None, (1, 2, 3))
+    ddp.release(drain=True)
     assert [t.get_name() for t in asyncio.all_tasks()].count("aioddp-repeat-127.0.0.1") == 1
     if ending == "connection_lost":
         protocol, transport = ddp._protocol, ddp._transport
@@ -332,13 +360,17 @@ async def test_close_or_lost_connection_cancels_pending_repeats(
         assert transport is not None
         protocol.connection_lost(None)
         transport.close()
-    else:
+    elif ending == "close":
         await ddp.close()
+    else:  # a frame sent while close() reaps the repeat task schedules no new one
+        await asyncio.gather(ddp.close(), ddp.fill(None, (4, 5, 6)))
+        assert all(not t.get_name().startswith("aioddp-repeat") for t in asyncio.all_tasks())
     await asyncio.sleep(0.25)
-    assert len(udp_listener.packets) == 1
+    assert len(udp_listener.packets) == 1 + (ending == "close-racing-fill")
     await ddp.close()  # reaps a task left by connection_lost
     assert all(not t.get_name().startswith("aioddp-repeat") for t in asyncio.all_tasks())
     assert ddp.stats.repeats_sent == 0
+    assert ddp._draining == []
 
 
 async def test_close_cancels_keepalive_is_idempotent_and_blocks_sends(make_strip: MakeStrip) -> None:

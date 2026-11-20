@@ -115,7 +115,8 @@ Some controllers drop a lone frame that arrives after a gap and only show a stre
 - A newer frame restarts the countdown, so a stream faster than the interval adds no packets; its last frame is repeated once it stops
 - Each resend is the keepalive burst: the current shadow of the ranges held at that moment, one `build_packets` per range, push only on the last packet. After `release()` released ranges are not resent; with nothing held, nothing is sent (the countdown still runs out)
 - Resends count in `stats.repeats_sent`, not `frames_sent`, and update `last_send`, so keepalive treats them as sends
-- `close()` cancels and awaits the task; `connection_lost` cancels it and `close()` or the next `open()` reaps it. Nothing is sent once the transport is gone
+- `close()` cancels and awaits the task; `connection_lost` cancels it and `close()` or the next `open()` reaps it. Nothing is sent once the transport is gone. While `close()` reaps the tasks a closing flag (set under the lifecycle lock) stops a concurrent `send_frame` from starting a new repeat task, so none outlives `close()`
+- `release(segment=None, *, drain=False)`: without `drain`, the released ranges are not resent again, a scheduled repeat included. With `drain` and a burst pending, the released held ranges move to a draining set: they leave `held` and keepalive at once, the pending burst still resends them (coalesced with the held ranges, one latch), and the set is emptied when the burst ends. A `send_frame` subtracts its range from the draining set (it is held again). With no burst pending, `drain` releases at once. `close()` and connection loss empty the draining set
 
 ### held
 
@@ -129,7 +130,7 @@ Read-only snapshot of the held byte ranges `(offset, length)`, sorted and disjoi
 ### release()
 
 ```python
-def release(self, segment: Segment | None = None) -> None
+def release(self, segment: Segment | None = None, *, drain: bool = False) -> None
 ```
 
 Drops `segment`'s byte range from the held set (splitting a held range that contains it), or every held range when `segment` is `None`. The next `send_frame` (and so `fill` or `off`) to those pixels holds them again. A segment past the end of the strip raises `ConfigError`. It is synchronous: it sends nothing, does not close the socket, and does not cancel the keepalive task, which keeps ticking and skips while nothing is held. Without keepalive, or on a closed sender, it is a harmless no-op. This exists for controllers with built-in effects: DDP data overrides the built-in effect, and the controller falls back to it some time after DDP stops (about 20 s on the controller recorded in `docs/compatibility.md`), so handing pixels back to the controller means no more DDP to them, keepalive included. Per-segment release lets an integration hand one output to the controller while DDP keeps another alive. `push()` does not resume keepalive; it latches, it is not a frame.
@@ -177,7 +178,7 @@ All against the `udp_listener` fixture from the testing spec; no mocking of asyn
 - `off` writes zeros into the shadow buffer and onto the wire
 - Keepalive at 0.5 s with a fake clock or short real sleep: no packets while sending every 0.1 s; one full-strip resend after idle
 - Keepalive after `release(segment)`: only the held ranges resent at their offsets (drop, split, overlap remainder, coalesce), black from `off` held, push once per burst, nothing after `release()`; `held` reports the same ranges
-- Frame repeats: burst count and spacing (default 1 sends one frame), restart on a newer frame, release (all, one segment) stops repeats of released ranges, close and connection loss cancel, parameter validation
+- Frame repeats: burst count and spacing (default 1 sends one frame), restart on a newer frame, release (all, one segment) stops repeats of released ranges, `release(drain=True)` (all, one segment, a frame during the burst, no burst) finishes the burst and keepalive skips drained ranges, close, connection loss, and close racing a frame cancel repeats and drains, parameter validation
 - `close()` cancels keepalive (no pending tasks after, asserted via `asyncio.all_tasks`), second `close()` is a no-op, `send_frame` after close raises `DDPSendError`
 - Unresolvable host raises `DDPSendError` from `open()`
 - `error_received` increments `send_errors` and does not raise

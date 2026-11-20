@@ -43,6 +43,14 @@ countdown: an effect streaming faster than `repeat_interval` adds no packets,
 and its last frame is repeated once it stops. `close()` cancels pending
 repeats. Repeats count in `stats.repeats_sent` and as sends for keepalive.
 
+`release()` stops the released pixels at once, a scheduled repeat included,
+which suits handing them to a controller's own effect. To release pixels right
+after their last frame (black after turning a light off, say) without cutting
+that frame's burst short, use `release(segment, drain=True)`: the pending
+burst still resends them, then they stop. They leave `held` and keepalive at
+once; a frame to them in the meantime holds them again. With no burst pending
+(or `repeat_frames=1`), `drain=True` releases at once.
+
 ```python
 async with DDPSender(strip, repeat_frames=3, repeat_interval=0.1) as tx:
     await tx.fill(roof, (255, 140, 40))  # on the wire at 0, 0.1 and 0.2 s
