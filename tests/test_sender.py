@@ -6,6 +6,7 @@ import asyncio
 import errno
 import json
 import logging
+import math
 import socket
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -236,6 +237,108 @@ async def test_keepalive_resends_only_held_ranges_and_latches_once(
 def test_keepalive_interval_below_floor_raises_config_error(make_strip: MakeStrip, interval: float) -> None:
     with pytest.raises(ConfigError, match="keepalive_interval"):
         DDPSender(make_strip(), keepalive_interval=interval)
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"repeat_frames": 0}, "repeat_frames"),
+        ({"repeat_frames": 1.5}, "repeat_frames"),
+        ({"repeat_frames": True}, "repeat_frames"),
+        ({"repeat_interval": 0.0}, "repeat_interval"),
+        ({"repeat_interval": 0.009}, "repeat_interval"),
+        ({"repeat_interval": math.inf}, "repeat_interval"),
+        ({"repeat_interval": math.nan}, "repeat_interval"),
+    ],
+)
+def test_repeat_params_out_of_range_raise_config_error(
+    make_strip: MakeStrip, kwargs: dict[str, Any], match: str
+) -> None:
+    with pytest.raises(ConfigError, match=match):
+        DDPSender(make_strip(), **kwargs)
+
+
+@pytest.mark.parametrize(("repeat_frames", "interval"), [(1, 0.1), (3, 0.1), (4, 0.05)])
+async def test_frame_is_repeated_from_shadow_at_interval_without_blocking(
+    udp_listener: UDPListener, make_strip: MakeStrip, repeat_frames: int, interval: float
+) -> None:
+    loop = asyncio.get_running_loop()
+    async with DDPSender(make_strip(), repeat_frames=repeat_frames, repeat_interval=interval) as ddp:
+        before = loop.time()
+        await ddp.fill(None, (7, 8, 9))
+        assert loop.time() - before < interval / 2  # the caller is not held for the burst
+        first_send = ddp.stats.last_send
+        await udp_listener.wait_for(repeat_frames)
+        await asyncio.sleep(interval * 2)  # nothing after the burst
+        stats = ddp.stats
+
+    assert len(udp_listener.packets) == repeat_frames
+    assert udp_listener.payloads() == [bytes([7, 8, 9]) * 10] * repeat_frames
+    assert [h.push for h in udp_listener.headers()] == [True] * repeat_frames
+    assert [h.sequence for h in udp_listener.headers()] == list(range(1, repeat_frames + 1))
+    gaps = [b - a for a, b in zip(udp_listener.times, udp_listener.times[1:], strict=False)]
+    assert all(interval * 0.9 <= gap < interval + 0.05 for gap in gaps), gaps
+    assert (stats.frames_sent, stats.repeats_sent, stats.keepalives_sent) == (1, repeat_frames - 1, 0)
+    assert stats.last_send is not None
+    assert first_send is not None
+    assert (stats.last_send > first_send) == (repeat_frames > 1)  # repeats count as sends for keepalive
+
+
+async def test_newer_frame_restarts_repeats_of_every_held_range(
+    udp_listener: UDPListener, make_strip: MakeStrip
+) -> None:
+    async with DDPSender(make_strip(), repeat_frames=3, repeat_interval=0.1) as ddp:
+        await ddp.fill(_A, (1, 2, 3))
+        await asyncio.sleep(0.06)  # before A's first repeat is due
+        await ddp.fill(_B, (4, 5, 6))
+        await udp_listener.wait_for(6)
+        await asyncio.sleep(0.2)
+        stats = ddp.stats
+
+    # A, B, then two bursts of both held ranges (latch once per burst), counted from B
+    burst = [(0, 12, False), (18, 12, True)]
+    assert [(h.offset, h.length, h.push) for h in udp_listener.headers()] == [(0, 12, True), (18, 12, True)] + burst * 2
+    assert udp_listener.payloads()[2:4] == [bytes([1, 2, 3]) * 4, bytes([4, 5, 6]) * 4]
+    assert udp_listener.times[2] - udp_listener.times[1] >= 0.09
+    assert (stats.frames_sent, stats.repeats_sent) == (2, 2)
+
+
+@pytest.mark.parametrize(("released", "repeated"), [(None, []), (_A, [(18, 12)])], ids=["all", "one-segment"])
+async def test_release_stops_repeats_of_released_ranges(
+    udp_listener: UDPListener, make_strip: MakeStrip, released: Segment | None, repeated: list[tuple[int, int]]
+) -> None:
+    async with DDPSender(make_strip(), repeat_frames=3, repeat_interval=0.1) as ddp:
+        await ddp.fill(_A, (1, 2, 3))
+        await ddp.fill(_B, (4, 5, 6))
+        ddp.release(released)
+        await asyncio.sleep(0.35)
+        stats = ddp.stats
+
+    assert [(h.offset, h.length) for h in udp_listener.headers()[2:]] == repeated * 2
+    assert stats.repeats_sent == (2 if repeated else 0)
+
+
+@pytest.mark.parametrize("ending", ["close", "connection_lost"])
+async def test_close_or_lost_connection_cancels_pending_repeats(
+    udp_listener: UDPListener, make_strip: MakeStrip, ending: str
+) -> None:
+    ddp = DDPSender(make_strip(), repeat_frames=3, repeat_interval=0.1)
+    await ddp.open()
+    await ddp.fill(None, (1, 2, 3))
+    assert [t.get_name() for t in asyncio.all_tasks()].count("aioddp-repeat-127.0.0.1") == 1
+    if ending == "connection_lost":
+        protocol, transport = ddp._protocol, ddp._transport
+        assert protocol is not None
+        assert transport is not None
+        protocol.connection_lost(None)
+        transport.close()
+    else:
+        await ddp.close()
+    await asyncio.sleep(0.25)
+    assert len(udp_listener.packets) == 1
+    await ddp.close()  # reaps a task left by connection_lost
+    assert all(not t.get_name().startswith("aioddp-repeat") for t in asyncio.all_tasks())
+    assert ddp.stats.repeats_sent == 0
 
 
 async def test_close_cancels_keepalive_is_idempotent_and_blocks_sends(make_strip: MakeStrip) -> None:
