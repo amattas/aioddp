@@ -55,6 +55,7 @@ class UDPListener(asyncio.DatagramProtocol):
     def __init__(self, responder: Responder | None = None) -> None:
         self.port: int = 0
         self.packets: list[bytes] = []
+        self.times: list[float] = []  # loop.time() of each arrival, parallel to ``packets``
         self.transport: asyncio.DatagramTransport | None = None
         self.responder = responder
 
@@ -65,6 +66,7 @@ class UDPListener(asyncio.DatagramProtocol):
 
     def datagram_received(self, data: bytes, addr: tuple[str | Any, int]) -> None:
         self.packets.append(data)
+        self.times.append(asyncio.get_running_loop().time())
         if self.responder is not None and self.transport is not None:
             for reply in self.responder(data, addr):
                 self.transport.sendto(reply, addr)
@@ -87,6 +89,7 @@ class UDPListener(asyncio.DatagramProtocol):
 
     def clear(self) -> None:
         self.packets.clear()
+        self.times.clear()
 
 
 @pytest.fixture

@@ -5,6 +5,10 @@ Every frame goes through ``process_frame``, so the strip's brightness cap cannot
 The sender holds the byte ranges it has sent to (``send_frame``, ``fill``, and ``off`` hold their segment; ``release``
 drops one segment or all of them). Keepalive resends only the held ranges, so pixels released to a controller's
 built-in effect are never overwritten by stale shadow bytes.
+
+With ``repeat_frames`` above 1, every frame is followed by a short burst of resends of the held ranges, for controllers
+that drop a lone frame after a gap in the stream. ``release(drain=True)`` lets a pending burst finish before the ranges
+stop being resent, so a last frame (black, say) still goes out as a burst.
 """
 
 from __future__ import annotations
@@ -32,6 +36,7 @@ from aioddp.strip import Segment, Strip
 _LOGGER = logging.getLogger(__name__)
 
 _MIN_KEEPALIVE_INTERVAL = 0.5
+_MIN_REPEAT_INTERVAL = 0.01
 _BLACK: Color = (0, 0, 0)
 
 Range = tuple[int, int]  # (byte offset, byte length)
@@ -73,6 +78,7 @@ class SenderStats:
     bytes_sent: int = 0
     frames_sent: int = 0
     keepalives_sent: int = 0
+    repeats_sent: int = 0  # resends of the held ranges after a frame (``repeat_frames``)
     replies_received: int = 0
     send_errors: int = 0
     last_send: float | None = None  # loop.time()
@@ -107,13 +113,23 @@ class DDPSender:
         *,
         keepalive_interval: float | None = None,
         bind_host: str | None = None,
+        repeat_frames: int = 1,
+        repeat_interval: float = 0.1,
     ) -> None:
         if keepalive_interval is not None and not keepalive_interval >= _MIN_KEEPALIVE_INTERVAL:
             raise ConfigError(
                 f"keepalive_interval must be None or >= {_MIN_KEEPALIVE_INTERVAL} seconds, got {keepalive_interval!r}"
             )
+        if not isinstance(repeat_frames, int) or isinstance(repeat_frames, bool) or repeat_frames < 1:
+            raise ConfigError(f"repeat_frames must be an integer >= 1, got {repeat_frames!r}")
+        if not (math.isfinite(repeat_interval) and repeat_interval >= _MIN_REPEAT_INTERVAL):
+            raise ConfigError(
+                f"repeat_interval must be a finite number >= {_MIN_REPEAT_INTERVAL} seconds, got {repeat_interval!r}"
+            )
         self._strip = strip
         self._keepalive_interval = keepalive_interval
+        self._repeat_frames = repeat_frames
+        self._repeat_interval = repeat_interval
         self._bind_host = bind_host
         self._seq = SequenceCounter()
         self._shadow = bytearray(strip.frame_size)
@@ -121,7 +137,12 @@ class DDPSender:
         self._transport: asyncio.DatagramTransport | None = None
         self._protocol: _DDPProtocol | None = None
         self._keepalive_task: asyncio.Task[None] | None = None
-        self._held: list[Range] = []  # sorted, disjoint byte ranges keepalive resends; release() drops them
+        self._repeat_task: asyncio.Task[None] | None = None
+        self._repeats_left = 0  # resends still due after the latest frame
+        self._repeat_due = 0.0  # loop.time() of the next one
+        self._held: list[Range] = []  # sorted, disjoint byte ranges keepalive and repeats resend; release() drops them
+        self._draining: list[Range] = []  # released with drain=True: only the pending repeat burst still resends them
+        self._closing = False  # set by close() while it reaps the tasks: no new repeat task may start
         self._seen_errnos: set[int | None] = set()
         self._pending: dict[int, asyncio.Future[bytes]] = {}  # destination -> reply payload
         self._reply_chunks: dict[int, dict[int, bytes]] = {}  # destination -> offset -> data; repeats replace
@@ -147,7 +168,7 @@ class DDPSender:
         async with self._lifecycle:
             if self.is_open:
                 return
-            await self._stop_keepalive()  # reap a task left by connection_lost before reopening
+            await self._stop_tasks()  # reap tasks left by connection_lost before reopening
             loop = asyncio.get_running_loop()
             strip = self._strip
             local_addr = (self._bind_host, 0) if self._bind_host else None
@@ -164,15 +185,17 @@ class DDPSender:
                 )
 
     async def close(self) -> None:
-        """Stop keepalive and close the socket. Idempotent; never blanks the lights."""
+        """Stop keepalive and pending repeats and close the socket. Idempotent; never blanks the lights."""
         async with self._lifecycle:
+            self._closing = True
             try:
-                await self._stop_keepalive()
+                await self._stop_tasks()
             finally:
                 transport, self._transport, self._protocol = self._transport, None, None
                 if transport is not None:
                     transport.close()
                 self._fail_pending()
+                self._closing = False
 
     async def __aenter__(self) -> DDPSender:
         await self.open()
@@ -194,7 +217,11 @@ class DDPSender:
         brightness: float = 1.0,
         push: bool = True,
     ) -> None:
-        """Send canonical RGB(W) ``pixels`` to ``segment`` (whole strip by default) through the color pipeline."""
+        """Send canonical RGB(W) ``pixels`` to ``segment`` (whole strip by default) through the color pipeline.
+
+        With ``repeat_frames`` above 1, the held ranges are resent ``repeat_frames - 1`` more times in the background,
+        ``repeat_interval`` apart; a newer frame restarts that countdown. Returns once this frame is sent.
+        """
         transport = self._require_open()
         strip = self._strip
         target = segment if segment is not None else strip.full_segment()
@@ -221,8 +248,11 @@ class DDPSender:
         )
         self._send(transport, packets)
         self._held = _hold(self._held, offset, len(wire))
+        self._draining = _drop(self._draining, offset, len(wire))
         self._stats.frames_sent += 1
         self._stats.last_frame = bytes(self._shadow)
+        if self._repeat_frames > 1:
+            self._schedule_repeats()
 
     async def fill(self, segment: Segment | None, color: Color, *, brightness: float = 1.0, push: bool = True) -> None:
         """Send one solid ``color`` to ``segment`` (whole strip when ``None``)."""
@@ -234,18 +264,32 @@ class DDPSender:
         """Blank ``segment`` (whole strip by default)."""
         await self.fill(segment, _BLACK, brightness=1.0, push=push)
 
-    def release(self, segment: Segment | None = None) -> None:
-        """Stop keepalive resends of ``segment`` (every held range by default) until a frame is sent to it again.
+    def release(self, segment: Segment | None = None, *, drain: bool = False) -> None:
+        """Stop keepalive and repeat resends of ``segment`` (every held range by default) until a frame holds it again.
 
         For controllers with built-in effects that take over after a timeout when DDP data stops on their pixels.
-        Sends nothing and leaves the socket open; a no-op without keepalive or when closed. Raises ``ConfigError``
-        for a segment past the end of the strip.
+        Sends nothing and leaves the socket open; a no-op without keepalive or repeats, or when closed. Raises
+        ``ConfigError`` for a segment past the end of the strip.
+
+        With ``drain``, a pending repeat burst still resends the released ranges before they stop (at once when none
+        is pending); keepalive and ``held`` drop them at once either way. A frame to them in the meantime holds them
+        again. Without ``drain``, nothing released is sent again, a scheduled repeat included.
         """
         if segment is None:
-            self._held = []
-            return
-        self._strip.validate_segment(segment)
-        self._held = _drop(self._held, self._strip.byte_offset(segment), self._strip.byte_length(segment))
+            offset, length = 0, self._strip.frame_size
+        else:
+            self._strip.validate_segment(segment)
+            offset, length = self._strip.byte_offset(segment), self._strip.byte_length(segment)
+        end = offset + length
+        released = [
+            (max(o, offset), min(o + n, end) - max(o, offset)) for o, n in self._held if o < end and offset < o + n
+        ]
+        self._held = _drop(self._held, offset, length)
+        if drain and self._repeats_left > 0:
+            for r_offset, r_length in released:
+                self._draining = _hold(self._draining, r_offset, r_length)
+        else:
+            self._draining = _drop(self._draining, offset, length)
 
     @property
     def held(self) -> tuple[tuple[int, int], ...]:
@@ -324,34 +368,82 @@ class DDPSender:
             stats.bytes_sent += len(packet)
         stats.last_send = asyncio.get_running_loop().time()
 
+    def _resend(self, transport: asyncio.DatagramTransport, ranges: list[Range]) -> None:
+        """Resend the shadow bytes of every range at its offset, latching once on the last packet."""
+        strip = self._strip
+        held = ranges
+        last = len(held) - 1
+        packets = [
+            packet
+            for index, (offset, length) in enumerate(held)
+            for packet in build_packets(
+                bytes(self._shadow[offset : offset + length]),
+                base_offset=offset,
+                data_type=strip.wire_data_type,
+                sequence=self._seq,
+                push=index == last,  # one latch per burst
+                destination=strip.destination_id,
+            )
+        ]
+        self._send(transport, packets)
+
     async def _keepalive(self, interval: float) -> None:
         loop = asyncio.get_running_loop()
-        strip = self._strip
         while True:
             await asyncio.sleep(interval)
             transport = self._transport
             last_send = self._stats.last_send
-            held = self._held
-            if transport is None or not held or last_send is None or loop.time() - last_send < interval:
+            if transport is None or not self._held or last_send is None or loop.time() - last_send < interval:
                 continue
-            last = len(held) - 1
-            packets = [
-                packet
-                for index, (offset, length) in enumerate(held)
-                for packet in build_packets(
-                    bytes(self._shadow[offset : offset + length]),
-                    base_offset=offset,
-                    data_type=strip.wire_data_type,
-                    sequence=self._seq,
-                    push=index == last,  # one latch per burst
-                    destination=strip.destination_id,
-                )
-            ]
-            self._send(transport, packets)
+            self._resend(transport, self._held)  # never the draining ranges
             self._stats.keepalives_sent += 1
 
-    async def _stop_keepalive(self) -> None:
-        task, self._keepalive_task = self._keepalive_task, None
+    def _schedule_repeats(self) -> None:
+        """(Re)start the repeat countdown; one task serves every frame, so a fast stream adds no tasks or packets."""
+        if self._closing:
+            return
+        loop = asyncio.get_running_loop()
+        self._repeats_left = self._repeat_frames - 1
+        self._repeat_due = loop.time() + self._repeat_interval
+        if self._repeat_task is None or self._repeat_task.done():
+            self._repeat_task = loop.create_task(self._repeat(), name=f"aioddp-repeat-{self._strip.host}")
+
+    async def _repeat(self) -> None:
+        loop = asyncio.get_running_loop()
+        try:
+            while self._repeats_left > 0:
+                delay = self._repeat_due - loop.time()
+                if delay > 0:
+                    await asyncio.sleep(delay)
+                    continue  # a newer frame may have moved the deadline
+                transport = self._transport
+                if transport is None:
+                    return
+                self._repeats_left -= 1
+                self._repeat_due = loop.time() + self._repeat_interval
+                ranges = self._held  # read now: released ranges are not resent, draining ones are
+                for offset, length in self._draining:
+                    ranges = _hold(ranges, offset, length)
+                if ranges:
+                    self._resend(transport, ranges)
+                    self._stats.repeats_sent += 1
+        finally:
+            if self._repeat_task is asyncio.current_task():  # else close() reaped it and a newer task may own the state
+                self._repeats_left = 0
+                self._draining = []  # the burst is over (or cancelled): drained ranges stop here
+
+    async def _stop_tasks(self) -> None:
+        self._repeats_left = 0
+        self._draining = []
+        repeat, keepalive = self._repeat_task, self._keepalive_task
+        self._repeat_task = self._keepalive_task = None
+        try:
+            await self._reap(repeat)
+        finally:
+            await self._reap(keepalive)
+
+    @staticmethod
+    async def _reap(task: asyncio.Task[None] | None) -> None:
         if task is None:
             return
         task.cancel()
@@ -360,7 +452,7 @@ class DDPSender:
         try:
             await task
         except asyncio.CancelledError:
-            # Swallow the keepalive's cancellation, but not a new cancellation of the caller while waiting.
+            # Swallow the task's cancellation, but not a new cancellation of the caller while waiting.
             if current is not None and current.cancelling() > cancelling:
                 raise
 
@@ -407,7 +499,10 @@ class DDPSender:
             return  # stale callback from a transport this sender already closed
         self._transport, self._protocol = None, None
         self._fail_pending()
-        if self._keepalive_task is not None:
-            self._keepalive_task.cancel()  # close() or the next open() awaits it
+        self._repeats_left = 0
+        self._draining = []
+        for task in (self._keepalive_task, self._repeat_task):
+            if task is not None:
+                task.cancel()  # close() or the next open() awaits it
         if exc is not None:
             _LOGGER.warning("DDP connection lost to %s:%d: %s", self._strip.host, self._strip.port, exc)
